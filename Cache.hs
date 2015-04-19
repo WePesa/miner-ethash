@@ -56,6 +56,8 @@ mkCache cSize seed = do
   let init = initDataSet n (bs2HashBS seed)
   mx <- mix init
 
+--  putStrLn . show $ V.map (IG.runGet bs2LW32) mx -- if you put this back in you can check against pyethash by calling fromBE32 on the entries
+
   return mx
 
   where
