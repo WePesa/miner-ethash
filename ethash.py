@@ -1,4 +1,5 @@
 import sha3, copy
+import binascii
 
 WORD_BYTES = 4                    # bytes in word
 DATASET_BYTES_INIT = 2**30        # bytes in dataset at genesis
@@ -808,16 +809,28 @@ cache_sizes = [
 def mkcache(cache_size, seed):
     n = cache_size // HASH_BYTES
 
-    print "seed: " + str(seed)
-    print "seed[0]: " + str(seed[0])
-    print "encode_int(seed[0]): " + str(encode_int(seed[0]))
-    print "zpad(encode_int(seed[0]), 4): " + str(zpad(encode_int(seed[0]), 4))
-    print "len(zpad(encode_int(seed[0]), 4)): " + str(len(zpad(encode_int(seed[0]), 4)))
+#    s = 0xabcdef
     
-    print "serialize_hash(seed): " + str(serialize_hash(seed))
-    print "sha3.sha3_512(serialize_hash(seed)).digest(): " + str(sha3.sha3_512(serialize_hash(seed)).digest())
-    print "deserialize above: "  + str(deserialize_hash (sha3.sha3_512(serialize_hash(seed)).digest()))
-    print "sha3_512(seed): " + str(sha3_512(seed))
+#    print "hex? %x" % s
+    
+#    print "encode_int(0xabcd): " + str(encode_int(0xabcd))
+    
+    #print "seed: " + str(seed)
+    # print "seed[0]: " + str(seed[0])
+    # print "encode_int(seed[0]): " + str(encode_int(seed[0]))
+    # print "zpad(encode_int(seed[0]), 4): " + str(zpad(encode_int(seed[0]), 4))
+    # print "decode_int of above:               " + str(decode_int((zpad(encode_int(seed[0]),4))))
+
+    # print "len(zpad(encode_int(seed[0]), 4)): " + str(len(zpad(encode_int(seed[0]), 4)))
+    
+    #print "serialize_hash(seed): " + str(serialize_hash(seed))
+    #print "deserialize above: "  + str(deserialize_hash (sha3.sha3_512(serialize_hash(seed)).digest()))
+
+    # print "sha3.sha3_512(serialize_hash(seed)).digest(): " + str(sha3.sha3_512(serialize_hash(seed)).digest())
+    # print "hash_words(sha3, 64, serialize_hash(seed)): " + str(hash_words(lambda v: sha3.sha3_512(v).digest(),64, serialize_hash(seed)))
+    # print "hash_words(sha3, 32, serialize_hash(seed)): " + str(hash_words(lambda v: sha3.sha3_512(v).digest(),8, serialize_hash(seed)))
+
+    # print "sha3_512(seed): " + str(sha3_512(seed))
 
 #    print "decode_int(seed): " + str(decode_int(seed))
 
@@ -828,31 +841,38 @@ def mkcache(cache_size, seed):
     for i in range(1, n):
         o.append(sha3_512(o[-1]))
 
-    print str(o)
+#    print str(o)
         
-    print "------------------------ mixing -----------------------------------"    
+ #   print "------------------------ mixing -----------------------------------"    
     # Use a low-round version of randmemohash
     for k in range(CACHE_ROUNDS):
         print "round: " + str(k)
         for i in range(n):
             print "i: " + str(i)
-            print "o[i]:    " + str(o[i])
-            print "o[i][0]: " + str(o[i][0])   ## take leftmost 16 bits ? 
+   #         print "o[i]:    " + str(o[i])
+    #        print "o[i][0]: " + str(o[i][0])   ## take leftmost 16 bits ? 
 
             print "v:              " + str(o[i][0] % n)
             v = o[i][0] % n
-            print "o[v]            " + str(o[v])
-            print "o[(i-1+n) % n]: " + str(o[(i-1+n) % n])
-            print "map w/ xor:     " + str(map(xor, o[(i-1+n) % n], o[v]))
-            print "sha-cap:        " + str(sha3_512(map(xor, o[(i-1+n) % n], o[v])))
+      #      print "o[v]            " + str(o[v])
+       #     print "o[(i-1+n) % n]: " + str(o[(i-1+n) % n])
+        #    print "map w/ xor:     " + str(map(xor, o[(i-1+n) % n], o[v]))
+         #   print "sha-cap:        " + str(sha3_512(map(xor, o[(i-1+n) % n], o[v])))
             o[i] = sha3_512(map(xor, o[(i-1+n) % n], o[v]))
 
+    print o
     return o
 
 
 def main():
+#    for i in range(65) :
+ #       print str(sha3_512(rep(0x0, times=i)))
     # my code here
-    mkcache((64*64),[10])
-
+    #mkcache((64*64),[0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0])
+    #mkcache((64*64),[0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0])
+    seed = "seed"
+    print "sha3_512(seed): " + str(sha3_512(seed))
+    mkcache(64*64, seed)
+    
 if __name__ == "__main__":
     main()
