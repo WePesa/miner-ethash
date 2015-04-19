@@ -43,29 +43,31 @@ def mkcache(cache_size, seed):
 -}
 
 
-type Cache = Repa.Array BN.Word32 Repa.DIM1 Int
-
+-- type Cache = Repa.Array BN.Word32 Repa.DIM1 Int
 
 {-
-mkCache :: Int -> Integer -> IO Cache
+IO (V.Vector BS.ByteString) is ok for now. We only need the full data set to be a Repa array.
+-}
+
+
+mkCache :: Int -> Integer -> IO (V.Vector BS.ByteString)
 mkCache cSize seed = do
   let init = initDataSet n (integer2BS seed)
-  mx <- mix n init
+  mx <- mix init
 
-  let tmp = V.map (runGet bs2LW32)  mx
-  let tmp2 = V.map (\t -> concatMap   ) 
-                   
-  return (RV.fromVector mx)
+  let bs = mx V.! 0
+        
+  putStrLn $ show . (IG.runGet bs2LW32) $ bs
+  return mx
 
   where
     n = cSize `div` (fromIntegral $ hashBytes :: Int)
--}
     
-
-mkCache = undefined
 
 -- assume bs is 512 bits
 -- done as stupidly as possible
+-- probably a utility for later
+    
 bs2LW32 :: IG.Get [ BN.Word32 ] [ BN.Word32 ]
 bs2LW32  = do
   replicateM 16 $ do
@@ -86,14 +88,27 @@ for _ in range(CACHE_ROUNDS):
 
 -}
 
-mix ::Int ->  V.Vector BS.ByteString -> IO (V.Vector BS.ByteString)
-mix n init = do
+mix ::V.Vector BS.ByteString -> IO (V.Vector BS.ByteString)
+mix init = do
+    putStrLn $ "init length: " ++ show (V.length init)
     mx <- V.thaw init
-
-    forM_ [0..cacheRounds] $ \notused -> do
-      forM_ [0..n] $ \i -> do
+    let n = MV.length(mx)
+    putStrLn $ "length of thawed vector: " ++ show (n)
+    
+--    forM_ [0..(cacheRounds-1)] $ \notused -> do
+    forM_ [0..(n-1)] $ \i -> do
         idex <-  MV.read mx i
-        let v = (fromIntegral $ G.runGet G.getWord32be (L.fromChunks [idex])) :: Int
+
+        putStrLn $ "read from ith index: " ++ show idex
+        
+        let preIndex = (fromIntegral $ G.runGet G.getWord32le (L.fromChunks [idex])) :: Int
+        let v = preIndex `mod` n
+
+    --    putStrLn $ "round: " ++ show notused
+        putStrLn $ "i: " ++ show i
+        putStrLn $ "preIndex: " ++ show preIndex
+        putStrLn $ "v: " ++ show v
+        
         m1 <- MV.read mx v :: IO BS.ByteString
         m2 <- MV.read mx ((i-1+n) `mod` n) :: IO BS.ByteString
         MV.write mx i (bs2HashBS (xorBS m1 m2))
@@ -103,7 +118,7 @@ mix n init = do
     
 
 initDataSet :: Int -> BS.ByteString -> V.Vector BS.ByteString
-initDataSet n seed = V.unfoldrN n (\t -> Just (bs2HashBS $ t, t) ) seed
+initDataSet n seed = V.unfoldrN n (\t -> Just (t, bs2HashBS $ t) ) seed
                      
 bs2HashBS :: BS.ByteString -> BS.ByteString
 bs2HashBS bs = toBytes $ ( hash $ bs :: Digest SHA3_512)

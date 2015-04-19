@@ -808,17 +808,37 @@ cache_sizes = [
 def mkcache(cache_size, seed):
     n = cache_size // HASH_BYTES
 
+    print "seed: " + str(seed)
+    print "seed[0]: " + str(seed[0])
+    print "encode_int(seed[0]): " + str(encode_int(seed[0]))
+    print "zpad(encode_int(seed[0]), 4): " + str(zpad(encode_int(seed[0]), 4))
+    print "len(zpad(encode_int(seed[0]), 4)): " + str(len(zpad(encode_int(seed[0]), 4)))
+    
+    print "serialize_hash(seed): " + str(serialize_hash(seed))
+    print "sha3.sha3_512(serialize_hash(seed)).digest(): " + str(sha3.sha3_512(serialize_hash(seed)).digest())
+    print "deserialize above: "  + str(deserialize_hash (sha3.sha3_512(serialize_hash(seed)).digest()))
+    print "sha3_512(seed): " + str(sha3_512(seed))
+
+#    print "decode_int(seed): " + str(decode_int(seed))
+
+ 
+
     # Sequentially produce the initial dataset
     o = [sha3_512(seed)]
     for i in range(1, n):
         o.append(sha3_512(o[-1]))
 
+    print str(o)
+        
+    print "------------------------ mixing -----------------------------------"    
     # Use a low-round version of randmemohash
-    for _ in range(CACHE_ROUNDS):
+    for k in range(CACHE_ROUNDS):
+        print "round: " + str(k)
         for i in range(n):
-            # print "i: " + str(i)
-            # print "o[i]:    " + str(o[i])
-            # print "o[i][0]: " + str(o[i][0])   ## take leftmost 16 bits ? 
+            print "i: " + str(i)
+            print "o[i]:    " + str(o[i])
+            print "o[i][0]: " + str(o[i][0])   ## take leftmost 16 bits ? 
+
             print "v:              " + str(o[i][0] % n)
             v = o[i][0] % n
             print "o[v]            " + str(o[v])
