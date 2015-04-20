@@ -1,6 +1,9 @@
 
 module Cache 
        ( mkCache,
+         bs2HashBS,
+         xorBS,
+         Cache(..)
        )
     where
 
@@ -44,26 +47,22 @@ def mkcache(cache_size, seed):
 -}
 
 
--- type Cache = Repa.Array BN.Word32 Repa.DIM1 Int
+type Cache = IO (V.Vector BS.ByteString)
 
 {-
 IO (V.Vector BS.ByteString) is ok for now. We only need the full data set to be a Repa array.
 -}
 
 
-mkCache :: Int -> BS.ByteString -> IO (V.Vector BS.ByteString)
+mkCache :: Int -> BS.ByteString -> Cache
 mkCache cSize seed = do
   let init = initDataSet n (bs2HashBS seed)
   mx <- mix init
 
 --  putStrLn . show $ V.map (IG.runGet bs2LW32) mx -- if you put this back in you can check against pyethash by calling fromBE32 on the entries
-
   return mx
-
   where
     n = cSize `div` (fromIntegral $ hashBytes :: Int)
-    
-
 -- assume bs is 512 bits
 -- done as stupidly as possible
 -- probably a utility for later

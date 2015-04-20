@@ -13,12 +13,7 @@ import qualified Data.ByteString.Base64 as B
 import Data.Bits
 import qualified Data.Array.Repa as Repa
 
-type Dataset =  Repa.Array BN.Word32 Repa.DIM1 Int
-
-fnvPrime = 16777619
-
-fnv :: Int -> Int -> Int
-fnv v1 v2 = (v1 * (fnvPrime ^v2)) `mod` (2^32)
+-- type Dataset =  Repa.Array BN.Word32 Repa.DIM1 Int
 
 
 
@@ -48,7 +43,7 @@ fnv v1 v2 = (v1 * (fnvPrime ^v2)) `mod` (2^32)
     }
 -}
 
-hashimoto_full :: Int -> Dataset -> SHA -> Int
-hashimoto_full fullSize dataset header nonce = undefined
+hashimotoFull :: Int -> Dataset -> SHA -> Int
+hashimotoFull fullSize dataset header nonce = undefined
 
 -- mixHash ::  -> SHA

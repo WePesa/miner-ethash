@@ -3,7 +3,8 @@ module Main where
 
 import Crypto.Hash
 import Cache
-import qualified Data.ByteString as B
+import Dataset
+import qualified Data.ByteString as BS
 
 main :: IO ()
 main = do
