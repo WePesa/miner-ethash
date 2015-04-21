@@ -112,7 +112,3 @@ initDataSet n seed = V.unfoldrN n (\t -> Just (t, bs2HashBS $ t) ) seed
                      
 bs2HashBS :: BS.ByteString -> BS.ByteString
 bs2HashBS bs = toBytes $ ( hash $ bs :: Digest SHA3_512)
-
-
-
-

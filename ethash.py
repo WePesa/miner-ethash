@@ -860,7 +860,7 @@ def mkcache(cache_size, seed):
          #   print "sha-cap:        " + str(sha3_512(map(xor, o[(i-1+n) % n], o[v])))
             o[i] = sha3_512(map(xor, o[(i-1+n) % n], o[v]))
 
-    print o
+   # print o
     return o
 
 FNV_PRIME = 0x01000193
@@ -870,14 +870,28 @@ def fnv(v1, v2):
     
 def calc_dataset_item(cache, i):
     n = len(cache)
+
+    print "n: " + str(n)
+    
     r = HASH_BYTES // WORD_BYTES
+
+    print "r: " + str(r)
                 # initialize the mix
     mix = copy.copy(cache[i % n])
+
+    print "init_mix: " + str(mix)
+    
     mix[0] ^= i
+
+    print "after xor: " + str(mix)
+    
     mix = sha3_512(mix)
+
+    print "after sha: " + str(mix)
     # fnv it with a lot of random cache nodes based on i
     for j in range(DATASET_PARENTS):
 	cache_index = fnv(i ^ j, mix[j % r])
+        print "cache_index: " + str(cache_index)
     	mix = map(fnv, mix, cache[cache_index % n])
     return sha3_512(mix)
 

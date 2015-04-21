@@ -1,6 +1,8 @@
 
 module Dataset
        ( calcDatasetItemBS,
+         cacheFunc,
+         lw322BS
        )
     where
 
@@ -9,7 +11,7 @@ import Control.Monad.State
 import Control.Monad.Primitive
 import Crypto.Hash
 import Constants
-import Data.List
+import Data.List 
 import qualified Data.Binary as BN
 import qualified Data.Binary.Get as G
 import qualified Data.Binary.Strict.IncrementalGet as IG
@@ -29,7 +31,7 @@ import Cache
     
 fnvPrime = 16777619
 
-fnv :: BN.Word64 -> BN.Word64 -> BN.Word64 
+fnv :: Int -> Int -> Int
 fnv v1 v2 = (v1 * (fnvPrime ^v2)) `mod` (2^32)
 
 {-
@@ -47,19 +49,38 @@ def calc_dataset_item(cache, i):
     return sha3_512(mix)
 -}
 
--- assume bs is 512 bits - unsafe
     
-bs2LW64 :: IG.Get [ BN.Word64 ] [ BN.Word64 ]
-bs2LW64  = do
-  replicateM 8 $ do
-     b <- IG.getWord64be 
-     return b
+lw322BS :: [ BN.Word32 ] -> BS.ByteString
+lw322BS [] = C.pack ""
+lw322BS lst = foldr (\t1 t2 -> (BS.concat $ L.toChunks $ BN.encode $ t1) `BS.append` t2) (BS.concat $ L.toChunks $  BN.encode $ head lst) lst
 
-lw642BS :: [ BN.Word64 ] -> BS.ByteString
-lw642BS [] = C.pack ""
-lw642BS lst = foldr (\t1 t2 -> (BS.concat $ L.toChunks $ BN.encode $ t1) `BS.append` t2) (BS.concat $ L.toChunks $  BN.encode $ head lst) lst
-  
--- I've chosen to change the endian order here instead of in mkCache...could refactor later
+calcDatasetItemBS :: V.Vector BS.ByteString -> Int -> [(BS.ByteString,Int)]
+calcDatasetItemBS cache i = take 255 $ mixList
+--calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
+   where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
+         mixInit = bs2HashBS mix1
+         mix1 = ((C.take 4 mix0) `xorBS` (BS.concat $ L.toChunks $ BN.encode (fromIntegral $ i :: BN.Word32))) `BS.append` (C.drop 4 mix0)
+         mix0 = (cache V.! (i `mod` n))
+         n = V.length cache
+
+cacheFunc :: V.Vector BS.ByteString -> Int -> ( BS.ByteString, Int ) -> (BS.ByteString, Int)
+cacheFunc cache i (mix, j) = (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
+  where mixLst = lw322lInt $ mixW32
+        mixWithLst = lw322lInt $ mixWith
+        (IG.Finished _ mixW32) = IG.runGet bs2LW32 mix
+        (IG.Finished _ mixWith) = IG.runGet bs2LW32 (cache V.! ( cacheIndex  `mod` n))
+        cacheIndex = fnv (i `xor` j) (mixLst !! (j `mod` r))
+        r = fromIntegral $ hashBytes `div` wordBytes :: Int
+        n = V.length cache
+
+lw322lInt :: [BN.Word32] -> [ Int ]
+lw322lInt = map (\t -> fromIntegral $ t :: Int)
+
+lint2BS :: [Int] -> BS.ByteString
+lint2BS lst = foldr (\t1 t2 -> (BS.concat $ L.toChunks $ BN.encode $ t1) `BS.append` t2) (BS.concat $ L.toChunks $  BN.encode $ head lst) lst
+
+
+{-
 calcDatasetItemBS :: V.Vector BS.ByteString -> Int -> State BS.ByteString BS.ByteString
 calcDatasetItemBS cache i = do
    
@@ -92,3 +113,5 @@ calcDatasetItemBS cache i = do
    
    
    where r = fromIntegral $ hashBytes `div` wordBytes :: Int
+-}
+
