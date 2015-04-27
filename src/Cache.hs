@@ -108,7 +108,7 @@ mix init = do
     
 
 initDataSet :: Int -> BS.ByteString -> V.Vector BS.ByteString
-initDataSet n seed = V.unfoldrN n (\t -> Just (t, SHA3.hash 512 t) ) seed
+initDataSet n = V.fromListN n . iterate (SHA3.hash 512)
                      
 bs2HashBS :: BS.ByteString -> BS.ByteString
 bs2HashBS = SHA3.hash 512
