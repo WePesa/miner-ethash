@@ -21,6 +21,7 @@ executable hminer
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8,
                        cryptohash,
+                       base16-bytestring,
                        bytestring,
                        binary,
                        byteable,
