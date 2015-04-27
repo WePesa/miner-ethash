@@ -11,7 +11,7 @@ module Cache
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Primitive
-import Crypto.Hash
+import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
 import Data.List
 import qualified Data.Binary as BN
@@ -101,17 +101,17 @@ mix init = do
 
         m1 <- MV.read mx v :: IO BS.ByteString
         m2 <- MV.read mx ((i-1+n) `mod` n) :: IO BS.ByteString
-        MV.write mx i (bs2HashBS (xorBS m1 m2))
+        MV.write mx i (SHA3.hash 512 (xorBS m1 m2))
           
     fmx <- V.freeze mx
     return fmx
     
 
 initDataSet :: Int -> BS.ByteString -> V.Vector BS.ByteString
-initDataSet n seed = V.unfoldrN n (\t -> Just (t, bs2HashBS $ t) ) seed
+initDataSet n seed = V.unfoldrN n (\t -> Just (t, SHA3.hash 512 t) ) seed
                      
 bs2HashBS :: BS.ByteString -> BS.ByteString
-bs2HashBS bs = toBytes $ ( hash $ bs :: Digest SHA3_512)
+bs2HashBS = SHA3.hash 512
 
 
 
