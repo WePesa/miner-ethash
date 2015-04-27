@@ -32,7 +32,7 @@ epochLength = 30000
 mixBytes = 128
 hashBytes = 64
 datasetParents = 256
-cacheRounds = 3
+cacheRounds = 3::Int
 accesses = 64
 
 

@@ -9,13 +9,14 @@ module Dataset
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Primitive
-import Crypto.Hash
+import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
 import Data.List 
 import qualified Data.Binary as BN
 import qualified Data.Binary.Get as G
 import qualified Data.Binary.Strict.IncrementalGet as IG
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Base64 as B
@@ -28,6 +29,7 @@ import qualified Data.Vector as V
 import System.Endian
 import Cache
 
+import Debug.Trace
     
 fnvPrime = 16777619
 
@@ -53,12 +55,12 @@ def calc_dataset_item(cache, i):
 lw322BS :: [ BN.Word32 ] -> BS.ByteString
 lw322BS [] = C.pack ""
 lw322BS lst = foldr (\t1 t2 -> (BS.concat $ L.toChunks $ BN.encode $ t1) `BS.append` t2) (BS.concat $ L.toChunks $  BN.encode $ head lst) lst
-
-calcDatasetItemBS :: V.Vector BS.ByteString -> Int -> [(BS.ByteString,Int)]
-calcDatasetItemBS cache i = take 255 $ mixList
+       
+calcDatasetItemBS :: V.Vector BS.ByteString -> Int -> (BS.ByteString,Int)
+calcDatasetItemBS cache i = trace (show $ B16.encode mix1) $ mixList !! 255
 --calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
    where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
-         mixInit = bs2HashBS mix1
+         mixInit = SHA3.hash 512 mix1
          mix1 = ((C.take 4 mix0) `xorBS` (BS.concat $ L.toChunks $ BN.encode (fromIntegral $ i :: BN.Word32))) `BS.append` (C.drop 4 mix0)
          mix0 = (cache V.! (i `mod` n))
          n = V.length cache

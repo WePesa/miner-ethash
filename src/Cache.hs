@@ -1,7 +1,6 @@
 
 module Cache 
        ( mkCache,
-         bs2HashBS,
          bs2LW32,
          xorBS,
          Cache(..)
@@ -49,14 +48,14 @@ def mkcache(cache_size, seed):
 -}
 
 
-type Cache = IO (V.Vector BS.ByteString)
+type Cache = V.Vector BS.ByteString
 
 {-
-IO (V.Vector BS.ByteString) is ok for now. We only need the full data set to be a Repa array.
+V.Vector BS.ByteString is ok for now. We only need the full data set to be a Repa array.
 -}
 
 
-mkCache :: Integer -> BS.ByteString -> Cache
+mkCache :: Integer -> BS.ByteString -> IO Cache
 mkCache cSize seed = mix $ initDataSet n $ SHA3.hash 512 seed
   where
     n = cSize `div` hashBytes
@@ -91,9 +90,9 @@ mix init = do
 
         let v = fromIntegral (G.runGet G.getWord32le $ L.fromStrict idex) `mod` n
 
-        m1 <- MV.read mx v :: IO BS.ByteString
-        m2 <- MV.read mx ((i-1+n) `mod` n) :: IO BS.ByteString
-        MV.write mx i (SHA3.hash 512 (xorBS m1 m2))
+        m1 <- MV.read mx v
+        m2 <- MV.read mx $ (i-1+n) `mod` n
+        MV.write mx i $ SHA3.hash 512 $ xorBS m1 m2
           
     fmx <- V.freeze mx
     return fmx
@@ -102,10 +101,4 @@ mix init = do
 initDataSet :: Integer -> BS.ByteString -> V.Vector BS.ByteString
 initDataSet n | n > toInteger (maxBound::Int) = error "initDataSet called for value too large, you can no longer use Data.Vector"
 initDataSet n = V.fromListN (fromInteger n) . iterate (SHA3.hash 512)
-                     
-bs2HashBS :: BS.ByteString -> BS.ByteString
-bs2HashBS = SHA3.hash 512
-
-
-
-
+              
