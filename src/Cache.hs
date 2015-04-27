@@ -18,6 +18,7 @@ import qualified Data.Binary as BN
 import qualified Data.Binary.Get as G
 import qualified Data.Binary.Strict.IncrementalGet as IG
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Base64 as B
@@ -61,6 +62,9 @@ mkCache cSize seed = do
   mx <- mix init
 
 --  putStrLn . show $ V.map (IG.runGet bs2LW32) mx -- if you put this back in you can check against pyethash by calling fromBE32 on the entries
+
+  putStrLn $ unlines $ map show $ map B16.encode $ V.toList init
+
   return mx
   where
     n = cSize `div` (fromIntegral $ hashBytes :: Int)
@@ -96,8 +100,7 @@ mix init = do
       forM_ [0..(n-1)] $ \i -> do
         idex <-  MV.read mx i
 
-        let preIndex = fromBE32 $ (fromIntegral $ G.runGet G.getWord32be $ L.fromStrict idex) 
-        let v = (fromIntegral $ preIndex :: Int) `mod` n
+        let v = fromIntegral (G.runGet G.getWord32le $ L.fromStrict idex) `mod` n
 
         m1 <- MV.read mx v :: IO BS.ByteString
         m2 <- MV.read mx ((i-1+n) `mod` n) :: IO BS.ByteString
