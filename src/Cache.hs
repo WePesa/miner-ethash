@@ -90,13 +90,13 @@ for _ in range(CACHE_ROUNDS):
 mix ::V.Vector BS.ByteString -> IO (V.Vector BS.ByteString)
 mix init = do
     mx <- V.thaw init
-    let n = MV.length(mx)
+    let n = MV.length mx
     
-    replicateM_ cacheRounds $ do
+    replicateM_ cacheRounds $
       forM_ [0..(n-1)] $ \i -> do
         idex <-  MV.read mx i
 
-        let preIndex = fromBE32 $ (fromIntegral $ G.runGet G.getWord32be (L.fromChunks [idex])) 
+        let preIndex = fromBE32 $ (fromIntegral $ G.runGet G.getWord32be $ L.fromStrict idex) 
         let v = (fromIntegral $ preIndex :: Int) `mod` n
 
         m1 <- MV.read mx v :: IO BS.ByteString
