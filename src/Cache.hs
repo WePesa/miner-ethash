@@ -3,31 +3,22 @@ module Cache
        ( mkCache,
          bs2LW32,
          xorBS,
-         Cache(..)
+         Cache
        )
     where
 
 import Control.Monad
-import Control.Monad.State
-import Control.Monad.Primitive
 import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
-import Data.List
 import qualified Data.Binary as BN
 import qualified Data.Binary.Get as G
 import qualified Data.Binary.Strict.IncrementalGet as IG
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base16 as B16
-import qualified Data.ByteString.Char8 as C
+--import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Lazy as L
-import qualified Data.ByteString.Base64 as B
-import Data.Byteable
 import Data.Bits
-import qualified Data.Array.Repa as Repa
-import qualified Data.Array.Repa.Repr.Vector as RV
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector as V
-import System.Endian
 
 {-
 def mkcache(cache_size, seed):
@@ -80,8 +71,8 @@ for _ in range(CACHE_ROUNDS):
 -}
 
 mix ::V.Vector BS.ByteString -> IO (V.Vector BS.ByteString)
-mix init = do
-    mx <- V.thaw init
+mix init' = do
+    mx <- V.thaw init'
     let n = MV.length mx
     
     replicateM_ cacheRounds $
