@@ -16,10 +16,10 @@ import qualified Data.Binary as BN
 import qualified Data.Binary.Get as G
 import Data.Binary.Put
 import qualified Data.Binary.Strict.IncrementalGet as IG
-import qualified Data.ByteString as BS
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B16
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Base64 as B
 import Data.Byteable
 import Data.Bits
@@ -56,21 +56,27 @@ def calc_dataset_item(cache, i):
 -}
 
     
-lw322BS :: [ BN.Word32 ] -> BS.ByteString
-lw322BS [] = C.pack ""
-lw322BS lst = foldr (\t1 t2 -> (BS.concat $ L.toChunks $ BN.encode $ t1) `BS.append` t2) (BS.concat $ L.toChunks $  BN.encode $ head lst) lst
+lw322BS :: [ BN.Word32 ] -> B.ByteString
+lw322BS [] = BC.pack ""
+lw322BS lst = foldr (\t1 t2 -> (BL.toStrict $ BN.encode $ t1) `B.append` t2) (BL.toStrict $  BN.encode $ head lst) lst
        
-calcDatasetItemBS :: V.Vector BS.ByteString -> Word32 -> (BS.ByteString,Int)
-calcDatasetItemBS cache i = trace (show $ B16.encode mixInit) $ mixList !! 255
+calcDatasetItemBS :: V.Vector B.ByteString -> Word32 -> (B.ByteString,Int)
+calcDatasetItemBS cache i =
+  --trace (show $ B16.encode mixInit) $
+  --trace (show $ B16.encode $ fst $ mixList !! 1) $
+  mixList !! 255
 --calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
    where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
          mixInit = SHA3.hash 512 mix1
-         mix1 = ((C.take 4 mix0) `xorBS` (L.toStrict $ runPut $ putWord32le i)) `BS.append` (C.drop 4 mix0)
+         mix1 = ((BC.take 4 mix0) `xorBS` (BL.toStrict $ runPut $ putWord32le i)) `B.append` (BC.drop 4 mix0)
          mix0 = (cache V.! (fromIntegral i `mod` n))
          n = V.length cache
 
-cacheFunc :: V.Vector BS.ByteString -> Word32 -> ( BS.ByteString, Int ) -> (BS.ByteString, Int)
-cacheFunc cache i (mix, j) = (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
+cacheFunc :: V.Vector B.ByteString -> Word32 -> ( B.ByteString, Int ) -> (B.ByteString, Int)
+cacheFunc cache i (mix, j) =
+--  trace (show mixW32) $ 
+--  trace (show mixWith) $ 
+  (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
   where mixLst = lw322lInt $ mixW32
         mixWithLst = lw322lInt $ mixWith
         (IG.Finished _ mixW32) = IG.runGet (replicateM 16 IG.getWord32be) mix
@@ -82,8 +88,8 @@ cacheFunc cache i (mix, j) = (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
 lw322lInt :: [BN.Word32] -> [ Int ]
 lw322lInt = map (\t -> fromIntegral $ t :: Int)
 
-lint2BS :: [Int] -> BS.ByteString
-lint2BS lst = foldr (\t1 t2 -> (BS.concat $ L.toChunks $ BN.encode $ t1) `BS.append` t2) (BS.concat $ L.toChunks $  BN.encode $ head lst) lst
+lint2BS :: [Int] -> B.ByteString
+lint2BS lst = B.concat $ fmap (BL.toStrict . BN.encode) lst
 
 
 {-
