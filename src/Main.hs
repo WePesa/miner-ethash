@@ -5,7 +5,6 @@ module Main where
 import qualified Data.ByteString.Base16 as B16
 import Cache
 import Dataset
-import qualified Data.Vector as V
 
 main :: IO ()
 main = do

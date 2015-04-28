@@ -9,9 +9,7 @@ import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
 import qualified Data.Binary.Get as G
 import qualified Data.ByteString as BS
---import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Lazy as L
-import Data.Bits
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector as V
 
