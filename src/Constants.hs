@@ -32,7 +32,7 @@ cacheMultiplier = 1024
 epochLength = 30000
 mixBytes = 128
 hashBytes = 64
-datasetParents = 256
+datasetParents = 256::Int
 cacheRounds = 3::Int
 accesses = 64
 

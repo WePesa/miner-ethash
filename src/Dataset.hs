@@ -64,7 +64,7 @@ calcDatasetItemBS :: V.Vector B.ByteString -> Word32 -> B.ByteString
 calcDatasetItemBS cache i =
   --trace (show $ B16.encode mixInit) $
   --trace (show $ B16.encode $ fst $ mixList !! 1) $
-  SHA3.hash 512 $ fst $ mixList !! 255
+  SHA3.hash 512 $ fst $ mixList !! datasetParents
 --calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
    where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
          mixInit = SHA3.hash 512 $
