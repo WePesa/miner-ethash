@@ -63,7 +63,7 @@ calcDatasetItemBS cache i = trace (show $ B16.encode mix1) $ mixList !! 255
 --calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
    where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
          mixInit = SHA3.hash 512 mix1
-         mix1 = ((C.take 4 mix0) `xorBS` (BS.concat $ L.toChunks $ BN.encode (fromIntegral $ i :: BN.Word32))) `BS.append` (C.drop 4 mix0)
+         mix1 = ((C.take 4 mix0) `xorBS` (L.toStrict $ BN.encode (fromIntegral $ i :: BN.Word32))) `BS.append` (C.drop 4 mix0)
          mix0 = (cache V.! (i `mod` n))
          n = V.length cache
 
