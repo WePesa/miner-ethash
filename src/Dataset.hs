@@ -37,8 +37,8 @@ import Debug.Trace
     
 fnvPrime = 16777619
 
-fnv :: Int -> Int -> Int
-fnv v1 v2 = (v1 * (fnvPrime ^v2)) `mod` (2^32)
+fnv::Word32->Word32->Word32
+fnv v1 v2 = v1 * fnvPrime `xor` v2
 
 {-
 def calc_dataset_item(cache, i):
@@ -60,7 +60,7 @@ lw322BS :: [ BN.Word32 ] -> B.ByteString
 lw322BS [] = BC.pack ""
 lw322BS lst = foldr (\t1 t2 -> (BL.toStrict $ BN.encode $ t1) `B.append` t2) (BL.toStrict $  BN.encode $ head lst) lst
        
-calcDatasetItemBS :: V.Vector B.ByteString -> Word32 -> (B.ByteString,Int)
+calcDatasetItemBS :: V.Vector B.ByteString -> Word32 -> (B.ByteString,Word32)
 calcDatasetItemBS cache i =
   --trace (show $ B16.encode mixInit) $
   --trace (show $ B16.encode $ fst $ mixList !! 1) $
@@ -72,23 +72,20 @@ calcDatasetItemBS cache i =
          mix0 = (cache V.! (fromIntegral i `mod` n))
          n = V.length cache
 
-cacheFunc :: V.Vector B.ByteString -> Word32 -> ( B.ByteString, Int ) -> (B.ByteString, Int)
+cacheFunc :: V.Vector B.ByteString -> Word32 -> ( B.ByteString, Word32 ) -> (B.ByteString, Word32)
 cacheFunc cache i (mix, j) =
 --  trace (show mixW32) $ 
 --  trace (show mixWith) $ 
   (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
-  where mixLst = lw322lInt $ mixW32
-        mixWithLst = lw322lInt $ mixWith
+  where mixLst = mixW32
+        mixWithLst = mixWith
         (IG.Finished _ mixW32) = IG.runGet (replicateM 16 IG.getWord32be) mix
-        (IG.Finished _ mixWith) = IG.runGet (replicateM 16 IG.getWord32be) (cache V.! ( cacheIndex  `mod` n))
-        cacheIndex = fnv (fromIntegral i `xor` j) (mixLst !! (j `mod` r))
-        r = fromIntegral $ hashBytes `div` wordBytes :: Int
-        n = V.length cache
+        (IG.Finished _ mixWith) = IG.runGet (replicateM 16 IG.getWord32be) (cache V.! fromIntegral ( cacheIndex  `mod` n))
+        cacheIndex = fnv (fromIntegral i `xor` j) (mixLst !! fromIntegral (j `mod` r))
+        r = fromIntegral $ hashBytes `div` wordBytes :: Word32
+        n = fromIntegral $ V.length cache::Word32
 
-lw322lInt :: [BN.Word32] -> [ Int ]
-lw322lInt = map (\t -> fromIntegral $ t :: Int)
-
-lint2BS :: [Int] -> B.ByteString
+lint2BS :: [Word32] -> B.ByteString
 lint2BS lst = B.concat $ fmap (BL.toStrict . BN.encode) lst
 
 
