@@ -1,6 +1,7 @@
 
 module Dataset (
-  calcDatasetItem
+  calcDatasetItem,
+  calcDataset
   ) where
 
 import Control.Monad
@@ -14,6 +15,7 @@ import Data.Bits
 import qualified Data.Vector as V
 import Data.Word
 
+import Cache
 import Util
 
 --import Debug.Trace
@@ -23,24 +25,8 @@ fnvPrime = 16777619
 
 fnv::Word32->Word32->Word32
 fnv v1 v2 = v1 * fnvPrime `xor` v2
-
-{-
-def calc_dataset_item(cache, i):
-    n = len(cache)
-    r = HASH_BYTES // WORD_BYTES
-    # initialize the mix
-    mix = copy.copy(cache[i % n])
-    mix[0] ^= i
-    mix = sha3_512(mix)
-    # fnv it with a lot of random cache nodes based on i                                                                                                                                                    
-    for j in range(DATASET_PARENTS):
-        cache_index = fnv(i ^ j, mix[j % r])
-        mix = map(fnv, mix, cache[cache_index % n])
-    return sha3_512(mix)
--}
-
     
-calcDatasetItem :: V.Vector B.ByteString -> Word32 -> B.ByteString
+calcDatasetItem::Cache->Word32->B.ByteString
 calcDatasetItem cache i =
   SHA3.hash 512 $ fst $ iterate (cacheFunc cache i) ( mixInit, 0 ) !! datasetParents
    where mixInit = SHA3.hash 512 $
@@ -62,3 +48,8 @@ shatter = runGet (replicateM 16 getWord32le) . BL.fromStrict
 
 repair::[Word32]->B.ByteString
 repair = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
+
+calcDataset::Word32->Cache->V.Vector B.ByteString
+calcDataset size cache =
+  V.fromList $ map (calcDatasetItem cache)
+                   [0..(size-1) `div` fromInteger hashBytes]
