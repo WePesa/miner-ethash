@@ -67,9 +67,9 @@ calcDatasetItemBS cache i =
   mixList !! 255
 --calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
    where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
-         mixInit = SHA3.hash 512 mix1
-         mix1 = ((BC.take 4 mix0) `xorBS` (BL.toStrict $ runPut $ putWord32le i)) `B.append` (BC.drop 4 mix0)
-         mix0 = (cache V.! (fromIntegral i `mod` n))
+         mixInit = SHA3.hash 512 $
+                       BL.toStrict (runPut (putWord32le i) `BL.append` BL.replicate 60 0)  `xorBS`
+                       (cache V.! (fromIntegral i `mod` n))
          n = V.length cache
 
 cacheFunc :: V.Vector B.ByteString -> Word32 -> ( B.ByteString, Word32 ) -> (B.ByteString, Word32)
@@ -79,8 +79,8 @@ cacheFunc cache i (mix, j) =
   (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
   where mixLst = mixW32
         mixWithLst = mixWith
-        (IG.Finished _ mixW32) = IG.runGet (replicateM 16 IG.getWord32be) mix
-        (IG.Finished _ mixWith) = IG.runGet (replicateM 16 IG.getWord32be) (cache V.! fromIntegral ( cacheIndex  `mod` n))
+        (IG.Finished _ mixW32) = IG.runGet (replicateM 16 IG.getWord32le) mix
+        (IG.Finished _ mixWith) = IG.runGet (replicateM 16 IG.getWord32le) (cache V.! fromIntegral ( cacheIndex  `mod` n))
         cacheIndex = fnv (fromIntegral i `xor` j) (mixLst !! fromIntegral (j `mod` r))
         r = fromIntegral $ hashBytes `div` wordBytes :: Word32
         n = fromIntegral $ V.length cache::Word32
