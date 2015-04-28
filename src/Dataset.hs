@@ -14,6 +14,7 @@ import Constants
 import Data.List 
 import qualified Data.Binary as BN
 import qualified Data.Binary.Get as G
+import Data.Binary.Put
 import qualified Data.Binary.Strict.IncrementalGet as IG
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base16 as B16
@@ -26,6 +27,7 @@ import qualified Data.Array.Repa as Repa
 import qualified Data.Array.Repa.Repr.Vector as RV
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector as V
+import Data.Word
 import System.Endian
 import Cache
 
@@ -58,22 +60,22 @@ lw322BS :: [ BN.Word32 ] -> BS.ByteString
 lw322BS [] = C.pack ""
 lw322BS lst = foldr (\t1 t2 -> (BS.concat $ L.toChunks $ BN.encode $ t1) `BS.append` t2) (BS.concat $ L.toChunks $  BN.encode $ head lst) lst
        
-calcDatasetItemBS :: V.Vector BS.ByteString -> Int -> (BS.ByteString,Int)
-calcDatasetItemBS cache i = trace (show $ B16.encode mix1) $ mixList !! 255
+calcDatasetItemBS :: V.Vector BS.ByteString -> Word32 -> (BS.ByteString,Int)
+calcDatasetItemBS cache i = trace (show $ B16.encode mixInit) $ mixList !! 255
 --calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
    where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
          mixInit = SHA3.hash 512 mix1
-         mix1 = ((C.take 4 mix0) `xorBS` (L.toStrict $ BN.encode (fromIntegral $ i :: BN.Word32))) `BS.append` (C.drop 4 mix0)
-         mix0 = (cache V.! (i `mod` n))
+         mix1 = ((C.take 4 mix0) `xorBS` (L.toStrict $ runPut $ putWord32le i)) `BS.append` (C.drop 4 mix0)
+         mix0 = (cache V.! (fromIntegral i `mod` n))
          n = V.length cache
 
-cacheFunc :: V.Vector BS.ByteString -> Int -> ( BS.ByteString, Int ) -> (BS.ByteString, Int)
+cacheFunc :: V.Vector BS.ByteString -> Word32 -> ( BS.ByteString, Int ) -> (BS.ByteString, Int)
 cacheFunc cache i (mix, j) = (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
   where mixLst = lw322lInt $ mixW32
         mixWithLst = lw322lInt $ mixWith
         (IG.Finished _ mixW32) = IG.runGet (replicateM 16 IG.getWord32be) mix
         (IG.Finished _ mixWith) = IG.runGet (replicateM 16 IG.getWord32be) (cache V.! ( cacheIndex  `mod` n))
-        cacheIndex = fnv (i `xor` j) (mixLst !! (j `mod` r))
+        cacheIndex = fnv (fromIntegral i `xor` j) (mixLst !! (j `mod` r))
         r = fromIntegral $ hashBytes `div` wordBytes :: Int
         n = V.length cache
 
