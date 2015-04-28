@@ -15,6 +15,8 @@ import Data.Bits
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector as V
 
+import Util
+
 type Cache = V.Vector BS.ByteString --We only need the full data set to be a Repa array.
 
 mkCache :: Integer -> BS.ByteString -> IO Cache
@@ -24,9 +26,6 @@ mkCache cSize seed = do
   mv <- V.unsafeThaw v
   mix mv
   V.unsafeFreeze mv
-
-xorBS :: BS.ByteString -> BS.ByteString -> BS.ByteString
-xorBS b1 b2 = (BS.pack . BS.zipWith xor b1 ) $ b2
 
 {-
 for _ in range(CACHE_ROUNDS):

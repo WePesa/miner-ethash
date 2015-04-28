@@ -29,6 +29,8 @@ import qualified Data.Vector as V
 import System.Endian
 import Cache
 
+import Util
+
 import Debug.Trace
     
 fnvPrime = 16777619
@@ -69,8 +71,8 @@ cacheFunc :: V.Vector BS.ByteString -> Int -> ( BS.ByteString, Int ) -> (BS.Byte
 cacheFunc cache i (mix, j) = (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
   where mixLst = lw322lInt $ mixW32
         mixWithLst = lw322lInt $ mixWith
-        (IG.Finished _ mixW32) = IG.runGet bs2LW32 mix
-        (IG.Finished _ mixWith) = IG.runGet bs2LW32 (cache V.! ( cacheIndex  `mod` n))
+        (IG.Finished _ mixW32) = IG.runGet (replicateM 16 IG.getWord32be) mix
+        (IG.Finished _ mixWith) = IG.runGet (replicateM 16 IG.getWord32be) (cache V.! ( cacheIndex  `mod` n))
         cacheIndex = fnv (i `xor` j) (mixLst !! (j `mod` r))
         r = fromIntegral $ hashBytes `div` wordBytes :: Int
         n = V.length cache
