@@ -11,6 +11,6 @@ main :: IO ()
 main = do
   --cache <- mkCache (2^12) "seed"
   cache <- mkCache 512 "seed"
-  putStrLn $ unlines $ map show $ map B16.encode $ V.toList cache
-  print $ calcDatasetItemBS cache 100
+  --putStrLn $ unlines $ map show $ map B16.encode $ V.toList cache
+  putStrLn $ show $ B16.encode $ fst $ calcDatasetItemBS cache 100
 
