@@ -60,11 +60,11 @@ lw322BS :: [ BN.Word32 ] -> B.ByteString
 lw322BS [] = BC.pack ""
 lw322BS lst = foldr (\t1 t2 -> (BL.toStrict $ BN.encode $ t1) `B.append` t2) (BL.toStrict $  BN.encode $ head lst) lst
        
-calcDatasetItemBS :: V.Vector B.ByteString -> Word32 -> (B.ByteString,Word32)
+calcDatasetItemBS :: V.Vector B.ByteString -> Word32 -> B.ByteString
 calcDatasetItemBS cache i =
   --trace (show $ B16.encode mixInit) $
   --trace (show $ B16.encode $ fst $ mixList !! 1) $
-  mixList !! 255
+  SHA3.hash 512 $ fst $ mixList !! 255
 --calcDatasetItemBS cache i = bs2HashBS $ fst $ mixList !! (fromInteger $ datasetParents :: Int)
    where mixList = iterate (cacheFunc cache i) ( mixInit, 0 )
          mixInit = SHA3.hash 512 $
@@ -76,6 +76,7 @@ cacheFunc :: V.Vector B.ByteString -> Word32 -> ( B.ByteString, Word32 ) -> (B.B
 cacheFunc cache i (mix, j) =
 --  trace (show mixW32) $ 
 --  trace (show mixWith) $ 
+--  trace (show $ zipWith fnv mixLst mixWithLst) $ 
   (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
   where mixLst = mixW32
         mixWithLst = mixWith
@@ -86,7 +87,7 @@ cacheFunc cache i (mix, j) =
         n = fromIntegral $ V.length cache::Word32
 
 lint2BS :: [Word32] -> B.ByteString
-lint2BS lst = B.concat $ fmap (BL.toStrict . BN.encode) lst
+lint2BS lst = B.concat $ fmap (BL.toStrict . runPut . putWord32le) lst
 
 
 {-
