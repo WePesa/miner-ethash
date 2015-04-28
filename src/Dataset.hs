@@ -1,15 +1,13 @@
 
 module Dataset (
-  calcDatasetItemBS,
-  cacheFunc
+  calcDatasetItem
   ) where
 
 import Control.Monad
 import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
-import qualified Data.Binary.Get as G
+import Data.Binary.Get
 import Data.Binary.Put
-import qualified Data.Binary.Strict.IncrementalGet as IG
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Bits
@@ -42,8 +40,8 @@ def calc_dataset_item(cache, i):
 -}
 
     
-calcDatasetItemBS :: V.Vector B.ByteString -> Word32 -> B.ByteString
-calcDatasetItemBS cache i =
+calcDatasetItem :: V.Vector B.ByteString -> Word32 -> B.ByteString
+calcDatasetItem cache i =
   SHA3.hash 512 $ fst $ iterate (cacheFunc cache i) ( mixInit, 0 ) !! datasetParents
    where mixInit = SHA3.hash 512 $
                        BL.toStrict (runPut (putWord32le i) `BL.append` BL.replicate 60 0)  `xorBS`
@@ -52,13 +50,15 @@ calcDatasetItemBS cache i =
 
 cacheFunc :: V.Vector B.ByteString -> Word32 -> ( B.ByteString, Word32 ) -> (B.ByteString, Word32)
 cacheFunc cache i (mix, j) =
-  (lint2BS $ zipWith fnv mixLst mixWithLst, j+1)
-  where (IG.Finished _ mixLst) = IG.runGet (replicateM 16 IG.getWord32le) mix
-        (IG.Finished _ mixWithLst) = IG.runGet (replicateM 16 IG.getWord32le) (cache V.! fromIntegral ( cacheIndex  `mod` n))
+  (repair $ zipWith fnv mixLst mixWithLst, j+1)
+  where mixLst = shatter mix
+        mixWithLst = shatter (cache V.! fromIntegral ( cacheIndex  `mod` n))
         cacheIndex = fnv (fromIntegral i `xor` j) (mixLst !! fromIntegral (j `mod` r))
-        r = fromInteger $ hashBytes `div` wordBytes ::Word32
+        r = fromInteger $ hashBytes `div` wordBytes
         n = fromIntegral $ V.length cache
 
-lint2BS :: [Word32] -> B.ByteString
-lint2BS lst = B.concat $ fmap (BL.toStrict . runPut . putWord32le) lst
+shatter::B.ByteString->[Word32]
+shatter = runGet (replicateM 16 getWord32le) . BL.fromStrict
 
+repair::[Word32]->B.ByteString
+repair = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
