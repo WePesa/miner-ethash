@@ -4,14 +4,17 @@ module Hashimoto where
 
 import Constants
 import qualified Crypto.Hash.SHA3 as SHA3
-import qualified Data.Array.Repa as Repa
-import qualified Data.Binary as BN
+import Data.Binary.Get
+import Data.Binary.Put
 import Data.Bits
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
-import Data.List
+import Data.Word
 import qualified Data.Vector as V
+
+import Util
+
+--import Debug.Trace
 
 -- type Dataset =  Repa.Array BN.Word32 Repa.DIM1 Int
 
@@ -43,13 +46,33 @@ import qualified Data.Vector as V
     }
 -}
 
-hashimoto::B.ByteString->B.ByteString->Int->V.Vector B.ByteString->(B.ByteString, B.ByteString)
-hashimoto _ _ _ _ = (cmix, SHA3.hash 256 (s `B.append` cmix))
+wordPack::[Word32]->B.ByteString
+wordPack = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
+
+getWord::B.ByteString->Word32->Word32
+getWord x i = runGet getWord32le $ BL.fromStrict $ B.take 4 $ B.drop (fromIntegral $ 4*i) x
+
+hashimoto::[Word32]->[Word32]->Int->V.Vector B.ByteString->(B.ByteString, B.ByteString)
+hashimoto header nonce fullSize' dataset =
+  (cmix, SHA3.hash 256 (s `B.append` cmix))
     where
-      cmix = undefined
-      --cmix = map 
-      --f = mix ! i `fnv` mix ! (i + 1) `fnv`  mix ! (i + 2) `fnv`  mix ! (i + 3)
-      s = undefined
+      mixhashes = mixBytes `div` hashBytes
+      s = SHA3.hash 512 $ wordPack $ header ++ reverse nonce
+      mix = B.concat $ replicate (fromInteger mixhashes) s
+      newmix = fst $ iterate (f (dataset, fullSize', mixhashes, s)) (mix, 0) !! 64
+      cmix = repair $ map f2 [0,4..fromIntegral $ B.length newmix `div` 4 - 1]
+      f2 i = getWord newmix i `fnv` getWord newmix (i + 1) `fnv`  getWord newmix (i + 2) `fnv` getWord newmix (i + 3)
+
+f::(V.Vector B.ByteString, Int, Integer, B.ByteString)->(B.ByteString, Word32)->(B.ByteString, Word32)
+f (dataset, fullSize', mixhashes, s) (mix, i) =
+  (repair $ zipWith fnv (shatter mix) (shatter newdata), i+1)
+  where
+    p = (fnv (i `xor` (runGet getWord32le $ BL.fromStrict $ B.take 4 s))
+         (getWord mix (i `mod` fromInteger w))) `mod` (fromIntegral n `div` fromInteger mixhashes) * fromInteger mixhashes
+    newdata = B.concat $ map (dataset V.!) [fromIntegral p..fromIntegral p + fromInteger mixBytes `quot` fromInteger hashBytes-1]
+    n = fullSize' `div` fromInteger hashBytes
+    w = mixBytes `div` wordBytes
+
 
 
 

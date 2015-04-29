@@ -3,12 +3,22 @@
 module Main where
 
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Base16 as B16
-import qualified Data.Vector as V
+import Data.ByteString.Internal
+--import qualified Data.ByteString.Base16 as B16
+import Data.Word
+--import qualified Data.Vector as V
+import Numeric
 
 import Cache
 import Dataset
 import Hashimoto
+
+encodeWord8::Word8->String
+encodeWord8 c | c < 0x20 || c > 0x7e = "\\x" ++ showHex c ""
+encodeWord8 c = [w2c c]
+
+encodeByteString::B.ByteString->String
+encodeByteString = (encodeWord8 =<<) . B.unpack
 
 main :: IO ()
 main = do
@@ -17,5 +27,7 @@ main = do
   --putStrLn $ unlines $ map show $ map B16.encode $ V.toList cache
   --putStrLn $ show $ B16.encode $ calcDatasetItem cache 100
   let dataset = calcDataset 512 cache
-  putStrLn $ show $ map B16.encode $ V.toList dataset
-  --putStrLn $ show $ hashimoto (B.pack [1,2,3,4]) (B.pack [1,2,3,4]) 512 dataset
+  --putStrLn $ show $ map B16.encode $ V.toList dataset
+  let (mixDigest, result) = hashimoto [1,2,3,4] [1,2,3,4] 512 dataset
+  putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
+  putStrLn $ "result: " ++ encodeByteString result
