@@ -2,16 +2,16 @@
 module Hashimoto where
 
 
-import Crypto.Hash
 import Constants
-import Data.List
-import qualified Data.Binary as BN
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString.Lazy as L
-import qualified Data.ByteString.Base64 as B
-import Data.Bits
+import qualified Crypto.Hash.SHA3 as SHA3
 import qualified Data.Array.Repa as Repa
+import qualified Data.Binary as BN
+import Data.Bits
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Lazy as BL
+import Data.List
+import qualified Data.Vector as V
 
 -- type Dataset =  Repa.Array BN.Word32 Repa.DIM1 Int
 
@@ -43,7 +43,18 @@ import qualified Data.Array.Repa as Repa
     }
 -}
 
-hashimotoFull :: Int -> Dataset -> SHA -> Int
-hashimotoFull fullSize dataset header nonce = undefined
+hashimoto::B.ByteString->B.ByteString->Int->V.Vector B.ByteString->(B.ByteString, B.ByteString)
+hashimoto _ _ _ _ = (cmix, SHA3.hash 256 (s `B.append` cmix))
+    where
+      cmix = undefined
+      --cmix = map 
+      --f = mix ! i `fnv` mix ! (i + 1) `fnv`  mix ! (i + 2) `fnv`  mix ! (i + 3)
+      s = undefined
+
+
+
+
+--hashimotoFull :: Int -> Dataset -> SHA -> Int
+--hashimotoFull fullSize dataset header nonce = undefined
 
 -- mixHash ::  -> SHA
