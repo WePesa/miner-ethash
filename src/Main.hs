@@ -6,13 +6,13 @@ import qualified Data.ByteString as B
 import Data.ByteString.Internal
 import qualified Data.ByteString.Base16 as B16
 import Data.Word
---import qualified Data.Vector as V
+import qualified Data.Vector as V
 import Numeric
 
-import Blockchain.Data.Address
-import Blockchain.Data.BlockDB
-import Blockchain.SHA
-import Blockchain.Database.MerklePatricia
+--import Blockchain.Data.Address
+--import Blockchain.Data.BlockDB
+--import Blockchain.SHA
+--import Blockchain.Database.MerklePatricia
 
 import Cache
 import Dataset
@@ -75,6 +75,6 @@ main = do
   --putStrLn $ show $ B16.encode $ calcDatasetItem cache 100
   let dataset = calcDataset 512 cache
   --putStrLn $ show $ map B16.encode $ V.toList dataset
-  let (mixDigest, result) = hashimoto [1,2,3,4] [1,2,3,4] 512 dataset
+  let (mixDigest, result) = hashimoto (B.pack [1,2,3,4]) (B.pack [1,2,3,4]) 512 ((dataset V.!) . fromIntegral)
   putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
   putStrLn $ "result: " ++ encodeByteString result
