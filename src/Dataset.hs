@@ -20,17 +20,17 @@ import Util
 
 calcDatasetItem::Cache->Word32->B.ByteString
 calcDatasetItem cache i =
-  SHA3.hash 512 $ fst $ iterate (cacheFunc cache i) ( mixInit, 0 ) !! datasetParents
+  SHA3.hash 512 $ repair $ fst $ iterate (cacheFunc cache i) (shatter mixInit, 0 ) !! datasetParents
    where mixInit = SHA3.hash 512 $
                        BL.toStrict (runPut (putWord32le i) `BL.append` BL.replicate 60 0)  `xorBS`
                        (cache V.! (fromIntegral i `mod` n))
          n = V.length cache
 
-cacheFunc :: V.Vector B.ByteString -> Word32 -> ( B.ByteString, Word32 ) -> (B.ByteString, Word32)
+cacheFunc :: V.Vector B.ByteString -> Word32 -> ([Word32], Word32 ) -> ([Word32], Word32)
 cacheFunc cache i (mix, j) =
-  (repair $ zipWith fnv mixLst mixWithLst, j+1)
-  where mixLst = shatter mix
-        mixWithLst = shatter (cache V.! fromIntegral ( cacheIndex  `mod` n))
+  (zipWith fnv mixLst mixWithLst, j+1)
+  where mixLst = mix
+        mixWithLst = (shatter $ cache V.! fromIntegral ( cacheIndex  `mod` n))
         cacheIndex = fnv (fromIntegral i `xor` j) (mixLst !! fromIntegral (j `mod` r))
         r = fromInteger $ hashBytes `div` wordBytes
         n = fromIntegral $ V.length cache
