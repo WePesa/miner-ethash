@@ -53,6 +53,7 @@ executable hminer
                        byteable,
                        containers,
                        base64-bytestring,
+                       time,
                        arithmoi,
                        vector,
                        primitive,

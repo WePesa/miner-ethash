@@ -9,7 +9,10 @@ import Data.Word
 import qualified Data.Vector as V
 import Numeric
 
+import TimeIt
+
 import Cache
+import Constants
 import Dataset
 import Hashimoto
 
@@ -22,8 +25,11 @@ encodeByteString = (encodeWord8 =<<) . B.unpack
 
 main :: IO ()
 main = do
-  cache <- mkCache 512 "seed"
-  let dataset = calcDataset 512 cache
-  let (mixDigest, result) = hashimoto (B.pack [1,2,3,4]) (B.pack [1,2,3,4]) 512 ((dataset V.!) . fromIntegral)
-  putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
-  putStrLn $ "result: " ++ encodeByteString result
+  cache <- mkCache (fromIntegral $ cacheSize 0) "seed"
+--  let dataset = calcDataset (fullSize 0) cache
+  timeIt $ do
+    let (mixDigest, result) =
+--        hashimoto (B.pack [1,2,3,4]) (B.pack [1,2,3,4]) 512 ((dataset V.!) . fromIntegral)
+          hashimoto (B.pack [1,2,3,4]) (B.pack [1,2,3,4]) (fromIntegral $ fullSize 0) (calcDatasetItem cache . fromIntegral)
+    putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
+    putStrLn $ "result: " ++ encodeByteString result
