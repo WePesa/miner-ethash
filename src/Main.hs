@@ -27,9 +27,26 @@ main :: IO ()
 main = do
   cache <- mkCache (fromIntegral $ cacheSize 0) "seed"
 --  let dataset = calcDataset (fullSize 0) cache
+
+
+  let fullSize' = fromIntegral $ fullSize 0
+      --getItem = (dataset V.!) . fromIntegral
+      getItem = calcDatasetItem cache . fromIntegral
+      block = B.pack [1,2,3,4]
+      nonce = B.pack [1,2,3,4]
+
   timeIt $ do
-    let (mixDigest, result) =
---        hashimoto (B.pack [1,2,3,4]) (B.pack [1,2,3,4]) 512 ((dataset V.!) . fromIntegral)
-          hashimoto (B.pack [1,2,3,4]) (B.pack [1,2,3,4]) (fromIntegral $ fullSize 0) (calcDatasetItem cache . fromIntegral)
+    let (mixDigest, result) = hashimoto block nonce fullSize' getItem
     putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
     putStrLn $ "result: " ++ encodeByteString result
+
+  timeIt $ do
+    let (mixDigest, result) = hashimoto block nonce fullSize' getItem
+    putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
+    putStrLn $ "result: " ++ encodeByteString result
+
+  timeIt $ do
+    let (mixDigest, result) = hashimoto block nonce fullSize' getItem
+    putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
+    putStrLn $ "result: " ++ encodeByteString result
+

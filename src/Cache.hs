@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 
 module Cache (
   Cache,
@@ -7,23 +8,23 @@ module Cache (
 import Control.Monad
 import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
-import qualified Data.Binary.Get as G
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as L
-import qualified Data.Vector.Mutable as MV
-import qualified Data.Vector as V
+import qualified Data.Array.Unboxed as A
+import qualified Data.Array.IO as MA
+import qualified Data.Array.IO.Internals as MA
+import qualified Data.ByteString as B
+import Data.Word
 
 import Util
 
-type Cache = V.Vector BS.ByteString --We only need the full data set to be a Repa array.
+type Cache = A.UArray (Word32, Word32) Word32
 
-mkCache :: Integer -> BS.ByteString -> IO Cache
+mkCache :: Integer -> B.ByteString -> IO Cache
 mkCache cSize seed = do
   let n = cSize `div` hashBytes
       v = initDataSet n $ SHA3.hash 512 seed
-  mv <- V.unsafeThaw v
+  mv <- MA.unsafeThawIOUArray v
   mix mv
-  V.unsafeFreeze mv
+  return v
 
 {-
 for _ in range(CACHE_ROUNDS):
@@ -33,22 +34,24 @@ for _ in range(CACHE_ROUNDS):
 
 -}
 
-mix::MV.IOVector BS.ByteString -> IO ()
+mix::MA.IOUArray (Word32, Word32) Word32->IO ()
 mix mx = do
-  let n = MV.length mx
+  ((0, _), (n, _)) <- MA.getBounds mx
     
   replicateM_ cacheRounds $
     forM_ [0..(n-1)] $ \i -> do
-      idex <-  MV.read mx i
+      idex <-  MA.readArray mx (i, 0)
 
-      let v = fromIntegral (G.runGet G.getWord32le $ L.fromStrict idex) `mod` n
+      let v = fromIntegral idex `mod` n
 
-      m1 <- MV.read mx v
-      m2 <- MV.read mx $ (i-1+n) `mod` n
-      MV.write mx i $ SHA3.hash 512 $ xorBS m1 m2
+      m1 <- fmap repair $ sequence $ map (MA.readArray mx . (v,)) $ [0..16]
+      m2 <- fmap repair $ sequence $ map (MA.readArray mx . ((i-1+n) `mod` n,)) [0..16]
+      sequence $
+        map (\(k, val) -> MA.writeArray mx (i,k) val) $
+        zip [0..15] $ shatter $ SHA3.hash 512 $ xorBS m1 m2
 
-initDataSet :: Integer -> BS.ByteString -> V.Vector BS.ByteString
-initDataSet n | n > toInteger (maxBound::Int) =
-  error "initDataSet called for value too large, you can no longer use Data.Vector"
-initDataSet n = V.fromListN (fromInteger n) . iterate (SHA3.hash 512)
+initDataSet::Integer->B.ByteString->Cache
+initDataSet n | n > toInteger (maxBound::Word32) =
+  error "initDataSet called for value too large, you can no longer use Word32 for cache index"
+initDataSet n = A.listArray ((0,0), (fromIntegral n,16)) . concat . map shatter . iterate (SHA3.hash 512)
               

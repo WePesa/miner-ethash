@@ -23,13 +23,13 @@ library
   other-modules:       Util
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8,
-                       cryptohash,
+                       array,
                        base16-bytestring,
                        bytestring,
                        binary,
                        byteable,
                        containers,
-                       base64-bytestring,
+                       cryptohash,
                        arithmoi,
                        vector,
                        primitive,
@@ -46,6 +46,7 @@ executable hminer
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8,
+                       array,
                        cryptohash,
                        base16-bytestring,
                        bytestring,

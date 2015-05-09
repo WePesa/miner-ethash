@@ -1,16 +1,17 @@
+{-# LANGUAGE TupleSections #-}
 
 module Dataset (
+  Slice,
+  sliceToByteString,
   calcDatasetItem,
   calcDataset
   ) where
 
-import Data.Binary.Put
 import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
+import qualified Data.Array.Unboxed as A
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
 import Data.Bits
-import qualified Data.Vector as V
 import Data.Word
 
 import Cache
@@ -18,24 +19,35 @@ import Util
 
 --import Debug.Trace
 
-calcDatasetItem::Cache->Word32->B.ByteString
+type Slice = A.UArray Word32 Word32
+
+sliceToByteString::Slice->B.ByteString
+sliceToByteString = repair . A.elems
+
+getSlice::Cache->Word32->Slice
+getSlice cache i = A.listArray (0, 15) $ map ((cache A.!) . (i,)) [0..]
+
+zipSliceWith::(Word32->Word32->Word32)->Slice->Slice->Slice
+zipSliceWith f s1 s2 =
+  A.listArray (0, 15) $ zipWith f (A.elems s1) (A.elems s2)
+
+calcDatasetItem::Cache->Word32->Slice
 calcDatasetItem cache i =
-  SHA3.hash 512 $ repair $ fst $ iterate (cacheFunc cache i) (shatter mixInit, 0 ) !! datasetParents
-   where mixInit = SHA3.hash 512 $
-                       BL.toStrict (runPut (putWord32le i) `BL.append` BL.replicate 60 0)  `xorBS`
-                       (cache V.! (fromIntegral i `mod` n))
-         n = V.length cache
+  A.listArray (0, 15) $ shatter $ SHA3.hash 512 $ sliceToByteString $ fst $ iterate (cacheFunc cache i) (mixInit, 0 ) !! datasetParents
+   where mixInit = A.listArray (0, 15) $ shatter $ SHA3.hash 512 $
+                   sliceToByteString $
+                   A.accum xor (getSlice cache (fromIntegral i `mod` n)) [(0,i)]
+         ((0, _), (n, _)) = A.bounds cache
 
-cacheFunc :: V.Vector B.ByteString -> Word32 -> ([Word32], Word32 ) -> ([Word32], Word32)
+cacheFunc::Cache->Word32->(Slice, Word32)->(Slice, Word32)
 cacheFunc cache i (mix, j) =
-  (zipWith fnv mixLst mixWithLst, j+1)
-  where mixLst = mix
-        mixWithLst = (shatter $ cache V.! fromIntegral ( cacheIndex  `mod` n))
-        cacheIndex = fnv (fromIntegral i `xor` j) (mixLst !! fromIntegral (j `mod` r))
+  (zipSliceWith fnv mix (getSlice cache $ cacheIndex `mod` n), j+1)
+  where cacheIndex = fnv (fromIntegral i `xor` j) (mix A.! fromIntegral (j `mod` r))
         r = fromInteger $ hashBytes `div` wordBytes
-        n = fromIntegral $ V.length cache
+        ((0, _), (n, _)) = A.bounds cache
 
-calcDataset::Word32->Cache->V.Vector B.ByteString
+calcDataset::Word32->Cache->Cache
 calcDataset size cache =
-  V.fromList $ map (calcDatasetItem cache)
-                   [0..(size-1) `div` fromInteger hashBytes]
+  A.listArray ((0,0), ((size-1) `div` fromInteger hashBytes, 16))
+  $ concatMap (A.elems . calcDatasetItem cache)
+  [0..]
