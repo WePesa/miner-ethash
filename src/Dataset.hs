@@ -24,25 +24,21 @@ type Slice = A.UArray Word32 Word32
 sliceToByteString::Slice->B.ByteString
 sliceToByteString = repair . A.elems
 
-getSlice::Cache->Word32->Slice
-getSlice cache i = A.listArray (0, 15) $ map ((cache A.!) . (i,)) [0..]
-
-zipSliceWith::(Word32->Word32->Word32)->Slice->Slice->Slice
-zipSliceWith f s1 s2 =
-  A.listArray (0, 15) $ zipWith f (A.elems s1) (A.elems s2)
+getSlice::Cache->Word32->[Word32]
+getSlice cache i = map ((cache A.!) . (i,)) [0..]
 
 calcDatasetItem::Cache->Word32->Slice
 calcDatasetItem cache i =
-  A.listArray (0, 15) $ shatter $ SHA3.hash 512 $ sliceToByteString $ fst $ iterate (cacheFunc cache i) (mixInit, 0 ) !! datasetParents
-   where mixInit = A.listArray (0, 15) $ shatter $ SHA3.hash 512 $
+  A.listArray (0, 15) $ shatter $ SHA3.hash 512 $ sliceToByteString $ A.listArray (0, 15) $ fst $ iterate (cacheFunc cache i) (mixInit, 0 ) !! datasetParents
+   where mixInit = shatter $ SHA3.hash 512 $
                    sliceToByteString $
-                   A.accum xor (getSlice cache (fromIntegral i `mod` n)) [(0,i)]
+                   A.accum xor (A.listArray (0,15) $ getSlice cache (fromIntegral i `mod` n)) [(0,i)]
          n = getCacheWidth cache
 
-cacheFunc::Cache->Word32->(Slice, Word32)->(Slice, Word32)
+cacheFunc::Cache->Word32->([Word32], Word32)->([Word32], Word32)
 cacheFunc cache i (mix, j) =
-  (zipSliceWith fnv mix (getSlice cache $ cacheIndex `mod` n), j+1)
-  where cacheIndex = fnv (fromIntegral i `xor` j) (mix A.! fromIntegral (j `mod` r))
+  (zipWith fnv mix (getSlice cache $ cacheIndex `mod` n), j+1)
+  where cacheIndex = fnv (fromIntegral i `xor` j) (mix !! fromIntegral (j `mod` r))
         r = fromInteger $ hashBytes `div` wordBytes
         n = getCacheWidth cache
 
