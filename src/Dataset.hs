@@ -37,14 +37,14 @@ calcDatasetItem cache i =
    where mixInit = A.listArray (0, 15) $ shatter $ SHA3.hash 512 $
                    sliceToByteString $
                    A.accum xor (getSlice cache (fromIntegral i `mod` n)) [(0,i)]
-         ((0, _), (n, _)) = A.bounds cache
+         n = getCacheWidth cache
 
 cacheFunc::Cache->Word32->(Slice, Word32)->(Slice, Word32)
 cacheFunc cache i (mix, j) =
   (zipSliceWith fnv mix (getSlice cache $ cacheIndex `mod` n), j+1)
   where cacheIndex = fnv (fromIntegral i `xor` j) (mix A.! fromIntegral (j `mod` r))
         r = fromInteger $ hashBytes `div` wordBytes
-        ((0, _), (n, _)) = A.bounds cache
+        n = getCacheWidth cache
 
 calcDataset::Word32->Cache->Cache
 calcDataset size cache =

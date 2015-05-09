@@ -2,7 +2,8 @@
 
 module Cache (
   Cache,
-  mkCache
+  mkCache,
+  getCacheWidth
   ) where
 
 import Control.Monad
@@ -34,18 +35,29 @@ for _ in range(CACHE_ROUNDS):
 
 -}
 
+getIOUArrayWidth::MA.IOUArray (Word32, Word32) Word32->IO Word32
+getIOUArrayWidth mx = do
+  ((0, _), (n, _)) <- MA.getBounds mx
+  return $ n + 1
+  
+getCacheWidth::Cache->Word32
+getCacheWidth array =
+  let ((0, _), (n, _)) = A.bounds array
+  in n + 1
+  
+
 mix::MA.IOUArray (Word32, Word32) Word32->IO ()
 mix mx = do
-  ((0, _), (n, _)) <- MA.getBounds mx
-    
+  n <- getIOUArrayWidth mx
+
   replicateM_ cacheRounds $
     forM_ [0..(n-1)] $ \i -> do
       idex <-  MA.readArray mx (i, 0)
 
       let v = fromIntegral idex `mod` n
-
-      m1 <- fmap repair $ sequence $ map (MA.readArray mx . (v,)) $ [0..16]
-      m2 <- fmap repair $ sequence $ map (MA.readArray mx . ((i-1+n) `mod` n,)) [0..16]
+      
+      m1 <- fmap repair $ sequence $ map (MA.readArray mx . (v,)) $ [0..15]
+      m2 <- fmap repair $ sequence $ map (MA.readArray mx . ((i-1+n) `mod` n,)) [0..15]
       sequence $
         map (\(k, val) -> MA.writeArray mx (i,k) val) $
         zip [0..15] $ shatter $ SHA3.hash 512 $ xorBS m1 m2
@@ -53,5 +65,5 @@ mix mx = do
 initDataSet::Integer->B.ByteString->Cache
 initDataSet n | n > toInteger (maxBound::Word32) =
   error "initDataSet called for value too large, you can no longer use Word32 for cache index"
-initDataSet n = A.listArray ((0,0), (fromIntegral n,16)) . concat . map shatter . iterate (SHA3.hash 512)
+initDataSet n = A.listArray ((0,0), (fromIntegral n-1,15)) . concat . map shatter . iterate (SHA3.hash 512)
               
