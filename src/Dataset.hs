@@ -59,12 +59,29 @@ cacheFunc cache i j mix = do
 
  cacheIndex <- fmap (fnv (i `xor` j)) $ A.unsafeRead mix $ fromIntegral $ j `mod` r
 
- let qqqq = fromIntegral $ 16 * (cacheIndex `mod` n)
+ let baseOffset = fromIntegral $ 16 * (cacheIndex `mod` n)
 
- forM_ [0..15] $ \k -> do
-   v1 <- A.unsafeRead mix k
-   let v2 = cache `A.unsafeAt` (qqqq + k)
-   A.unsafeWrite mix k $ fnv v1 v2
+     modword k = do
+       v1 <- A.unsafeRead mix k
+       let v2 = cache `A.unsafeAt` (baseOffset + k)
+       A.unsafeWrite mix k $ fnv v1 v2
+
+ modword 0 --copied by hand for performance reasons
+ modword 1
+ modword 2
+ modword 3
+ modword 4
+ modword 5
+ modword 6
+ modword 7
+ modword 8
+ modword 9
+ modword 10
+ modword 11
+ modword 12
+ modword 13
+ modword 14
+ modword 15
 
 {-
 calcDataset::Word32->Cache->Cache
