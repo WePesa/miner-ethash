@@ -1,10 +1,10 @@
 
 module Hashimoto where
 
-
+import Control.Monad
 import Constants
 import qualified Crypto.Hash.SHA3 as SHA3
-import qualified Data.Array.Unboxed as A
+import qualified Data.Array.IO as MA
 import Data.Binary.Get
 import Data.Binary.Put
 import Data.Bits
@@ -50,32 +50,55 @@ import Util
 wordPack::[Word32]->B.ByteString
 wordPack = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
 
-getWord::Slice->Word32->Word32
-getWord = (A.!)
-
-zipSliceWith::(Word32->Word32->Word32)->Slice->Slice->Slice
-zipSliceWith f s1 s2 =
-  A.listArray (0, 15) $ zipWith f (A.elems s1) (A.elems s2)
-
-hashimoto::B.ByteString->B.ByteString->Int->(Word32->Slice)->(B.ByteString, B.ByteString)
-hashimoto header nonce fullSize' dataset =
-  (cmix, SHA3.hash 256 (s `B.append` cmix))
-    where
-      mixhashes = mixBytes `div` hashBytes
+hashimoto::B.ByteString->B.ByteString->Int->(Word32->IO Slice)->IO (B.ByteString, B.ByteString)
+hashimoto header nonce fullSize' dataset = do
+  let mixhashes = mixBytes `div` hashBytes
       s = SHA3.hash 512 $ header `B.append` B.reverse nonce
-      mix = A.listArray (0,31) $ concat $ replicate (fromInteger mixhashes) $ shatter s
-      newmix = fst $ iterate (f (dataset, fullSize', mixhashes, s)) (mix, 0) !! 64
-      cmix = repair $ map f2 [0,4..31]
-      f2 i = getWord newmix i `fnv` getWord newmix (i + 1) `fnv`  getWord newmix (i + 2) `fnv` getWord newmix (i + 3)
 
-f::(Word32->Slice, Int, Integer, B.ByteString)->(A.UArray Word32 Word32, Word32)->(A.UArray Word32 Word32, Word32)
-f (dataset, fullSize', mixhashes, s) (mix, i) =
-  (A.listArray (0,31) $ zipWith fnv (A.elems mix) (A.elems (dataset p) ++ A.elems (dataset $ p + 1)), i+1)
+  mix <- MA.newArray (0,31) 0
+
+  sequence_ $ map (uncurry $ MA.writeArray mix) $ zip [0..] (shatter s)
+  sequence_ $ map (uncurry $ MA.writeArray mix) $ zip [16..] (shatter s)
+
+  forM_ [0..63] $ \j ->
+    f (dataset, fullSize', mixhashes, s) j mix
+
+
+  let f2 i = do
+        v1 <- MA.readArray mix i
+        v2 <- MA.readArray mix $ i + 1
+        v3 <- MA.readArray mix $ i + 2
+        v4 <- MA.readArray mix $ i + 3
+        return $ v1 `fnv` v2 `fnv`  v3 `fnv` v4
+
+  cmix <- fmap repair $ sequence $ map f2 [0,4..31]
+  return (cmix, SHA3.hash 256 (s `B.append` cmix))
+  
+
+f::(Word32->IO Slice, Int, Integer, B.ByteString)->Word32->MA.IOUArray Word32 Word32->IO ()
+f (dataset, fullSize', mixhashes, s) i mix = do
+  let n = fullSize' `div` fromInteger hashBytes
+      w = mixBytes `div` wordBytes
+
+  mixVal <- MA.readArray mix (i `mod` fromInteger w)
+  
+  let p = (fnv (i `xor` (runGet getWord32le $ BL.fromStrict $ B.take 4 s))
+           mixVal) `mod` (fromIntegral n `div` fromInteger mixhashes) * fromInteger mixhashes
+  data1 <- dataset p
+  data2 <- dataset $ p + 1
+  
+  forM_ [0..15] $ \k -> do
+    v1 <- MA.readArray mix k
+    v2 <- MA.readArray data1 k
+    MA.writeArray mix k (fnv v1 v2)
+
+  forM_ [0..15] $ \k -> do
+    v1 <- MA.readArray mix $ k + 16
+    v2 <- MA.readArray data2 k
+    MA.writeArray mix (k+16) (fnv v1 v2)
+
   where
-    p = (fnv (i `xor` (runGet getWord32le $ BL.fromStrict $ B.take 4 s))
-         (getWord mix (i `mod` fromInteger w))) `mod` (fromIntegral n `div` fromInteger mixhashes) * fromInteger mixhashes
-    n = fullSize' `div` fromInteger hashBytes
-    w = mixBytes `div` wordBytes
+
 
 
 

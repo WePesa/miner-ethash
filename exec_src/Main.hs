@@ -4,9 +4,7 @@ module Main where
 
 import qualified Data.ByteString as B
 import Data.ByteString.Internal
-import qualified Data.ByteString.Base16 as B16
 import Data.Word
-import qualified Data.Vector as V
 import Numeric
 
 import TimeIt
@@ -36,17 +34,17 @@ main = do
       nonce = B.pack [1,2,3,4]
 
   timeIt $ do
-    let (mixDigest, result) = hashimoto block nonce fullSize' getItem
+    (mixDigest, result) <- hashimoto block nonce fullSize' getItem
     putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
     putStrLn $ "result: " ++ encodeByteString result
 
   timeIt $ do
-    let (mixDigest, result) = hashimoto block nonce fullSize' getItem
+    (mixDigest, result) <- hashimoto block nonce fullSize' getItem
     putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
     putStrLn $ "result: " ++ encodeByteString result
 
   timeIt $ do
-    let (mixDigest, result) = hashimoto block nonce fullSize' getItem
+    (mixDigest, result) <- hashimoto block nonce fullSize' getItem
     putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
     putStrLn $ "result: " ++ encodeByteString result
 
