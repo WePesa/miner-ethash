@@ -9,8 +9,9 @@ module Dataset (
 import Control.Monad
 import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
+import qualified Data.Array.Base as A
 import qualified Data.Array.Unboxed as A
-import qualified Data.Array.IO as MA
+import qualified Data.Array.IO as A
 import Data.Bits
 import Data.Word
 
@@ -19,13 +20,13 @@ import Util
 
 --import Debug.Trace
 
-type Slice = MA.IOUArray Word32 Word32
+type Slice = A.IOUArray Word32 Word32
 
 copySlice::Cache->Word32->IO Slice
 copySlice cache i = do
-  x <- MA.newArray (0,15) 0
+  x <- A.newArray (0,15) 0
   forM_ [0..15] $ \k ->
-    MA.writeArray x k (cache A.! (i,k))
+    A.writeArray x k (cache A.! (i,k))
   return x
 
 calcDatasetItem::Cache->Word32->IO Slice
@@ -34,18 +35,18 @@ calcDatasetItem cache i = do
 
   mix <- copySlice cache (i `mod` n)
 
-  MA.writeArray mix 0 =<< (fmap (xor i) $ MA.readArray mix 0)
+  A.writeArray mix 0 =<< (fmap (xor i) $ A.readArray mix 0)
 
-  mixBytes' <- sequence $ map (MA.readArray mix) [0..15]
+  mixBytes' <- sequence $ map (A.readArray mix) [0..15]
   let theHash = shatter $ SHA3.hash 512 $ repair mixBytes'
-  sequence_ $ map (uncurry $ MA.writeArray mix) $ zip [0..] theHash
+  sequence_ $ map (uncurry $ A.writeArray mix) $ zip [0..] theHash
 
   forM_ [0..fromIntegral $ datasetParents-1] $ \j ->
     cacheFunc cache i j mix
 
-  mixBytes'' <- sequence $ map (MA.readArray mix) [0..15]
+  mixBytes'' <- sequence $ map (A.readArray mix) [0..15]
   let theHash' = shatter $ SHA3.hash 512 $ repair mixBytes''
-  sequence_ $ map (uncurry $ MA.writeArray mix) $ zip [0..] theHash'
+  sequence_ $ map (uncurry $ A.writeArray mix) $ zip [0..] theHash'
 
   return mix
 
@@ -56,12 +57,14 @@ cacheFunc cache i j mix = do
  let r = fromInteger $ hashBytes `div` wordBytes
      n = getCacheWidth cache
 
- cacheIndex <- fmap (fnv (i `xor` j)) $ MA.readArray mix $ j `mod` r
+ cacheIndex <- fmap (fnv (i `xor` j)) $ A.unsafeRead mix $ fromIntegral $ j `mod` r
+
+ let qqqq = fromIntegral $ 16 * (cacheIndex `mod` n)
 
  forM_ [0..15] $ \k -> do
-   v1 <- MA.readArray mix k
-   let v2 = cache A.! (cacheIndex `mod` n, k)
-   MA.writeArray mix k $ fnv v1 v2
+   v1 <- A.unsafeRead mix k
+   let v2 = cache `A.unsafeAt` (qqqq + k)
+   A.unsafeWrite mix k $ fnv v1 v2
 
 {-
 calcDataset::Word32->Cache->Cache
