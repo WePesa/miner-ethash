@@ -38,7 +38,7 @@ calcDatasetItem cache i =
 cacheFunc::Cache->Word32->([Word32], Word32)->([Word32], Word32)
 cacheFunc cache i (mix, j) =
   (zipWith fnv mix (getSlice cache $ cacheIndex `mod` n), j+1)
-  where cacheIndex = fnv (fromIntegral i `xor` j) (mix !! fromIntegral (j `mod` r))
+  where cacheIndex = fnv (i `xor` j) (mix !! fromIntegral (j `mod` r))
         r = fromInteger $ hashBytes `div` wordBytes
         n = getCacheWidth cache
 
