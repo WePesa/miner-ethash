@@ -37,3 +37,17 @@ executable hminer
   ghc-options:         -Wall -O2
   hs-source-dirs:      exec_src
   default-language:    Haskell2010
+
+executable mkDataset
+  main-is:             mkDataset.hs
+  build-depends:       base >=4.7 && <4.8,
+                       arithmoi,
+                       array,
+                       binary,
+                       bytestring,
+                       cryptohash,
+                       hminer,
+                       time
+  ghc-options:         -Wall -O2
+  hs-source-dirs:      exec_src
+  default-language:    Haskell2010
