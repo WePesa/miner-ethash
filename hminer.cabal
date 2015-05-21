@@ -32,6 +32,7 @@ executable hminer
                        binary,
                        bytestring,
                        cryptohash,
+                       mmap,
                        hminer,
                        time
   ghc-options:         -Wall -O2

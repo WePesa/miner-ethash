@@ -25,7 +25,7 @@ encodeByteString = (encodeWord8 =<<) . B.unpack
 
 main :: IO ()
 main = do
-  cache <- mkCache (fromIntegral $ cacheSize 0) "seed"
+  cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
 
   forM_ [0..fullSize 0 `quot` 64 - 1] $ \i -> do
     slice <- calcDatasetItem cache $ fromIntegral i
