@@ -35,12 +35,11 @@ word32Unpack s = error "word32Unpack called for ByteString of length not a multi
 
 main :: IO ()
 main = do
---  cache <- mkCache (fromIntegral $ cacheSize 0) "seed"
+--  cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
 --  let dataset = calcDataset (fullSize 0) cache
 
 
   let fullSize' = fromIntegral $ fullSize 0
-      --getItem = (dataset V.!) . fromIntegral
       --getItem = calcDatasetItem cache . fromIntegral
       block = B.pack [1,2,3,4]
       nonce = B.pack [1,2,3,4]
@@ -52,6 +51,6 @@ main = do
   timeIt $ do
     forM_ [0..15000] $ \_ -> do 
       (mixDigest, result) <- hashimoto block nonce fullSize' (getItem') -- getItem
-      --putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
-      --putStrLn $ "result: " ++ encodeByteString result
+      putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
+      putStrLn $ "result: " ++ encodeByteString result
       return ()
