@@ -8,16 +8,16 @@ import Data.Binary
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Internal
-import Data.Word
-import Foreign.Storable
+--import Data.Word
+--import Foreign.Storable
 import Numeric
 import System.IO.MMap
 
 import TimeIt
 
-import Cache
+--import Cache
 import Constants
-import Dataset
+--import Dataset
 import Hashimoto
 
 encodeWord8::Word8->String
@@ -30,7 +30,7 @@ encodeByteString = (encodeWord8 =<<) . B.unpack
 word32Unpack::B.ByteString->[Word32]
 word32Unpack s | B.null s = []
 word32Unpack s | B.length s >= 4 = decode (BL.fromStrict $ B.take 4 s) : word32Unpack (B.drop 4 s)
-word32Unpack s = error "word32Unpack called for ByteString of length not a multiple of 4"
+word32Unpack _ = error "word32Unpack called for ByteString of length not a multiple of 4"
 
 
 main :: IO ()
@@ -49,7 +49,7 @@ main = do
   let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
 
   timeIt $ do
-    forM_ [0..15000] $ \_ -> do 
+    forM_ [0..15000::Integer] $ \_ -> do 
       (mixDigest, result) <- hashimoto block nonce fullSize' (getItem') -- getItem
       putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
       putStrLn $ "result: " ++ encodeByteString result

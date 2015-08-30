@@ -10,7 +10,6 @@ import Control.Monad
 import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
 import qualified Data.Array.Base as A
-import qualified Data.Array.Unboxed as A
 import qualified Data.Array.IO as A
 import Data.Bits
 import Data.Word
