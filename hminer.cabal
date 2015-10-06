@@ -14,7 +14,7 @@ library
                      , Dataset
                      , TimeIt
   other-modules:       Util
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base,
                        arithmoi,
                        array,
                        binary,
@@ -28,7 +28,7 @@ library
 
 executable hminer
   main-is:             Main.hs
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base,
                        arithmoi,
                        array,
                        binary,
@@ -43,7 +43,7 @@ executable hminer
 
 executable mkDataset
   main-is:             mkDataset.hs
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base,
                        arithmoi,
                        array,
                        binary,
