@@ -1,5 +1,5 @@
 
-name:                hminer
+name:                miner-ethash
 version:             0.1.0.0
 license:             MIT
 license-file:        LICENSE
@@ -35,7 +35,7 @@ executable hminer
                        bytestring,
                        cryptohash,
                        mmap,
-                       hminer,
+                       miner-ethash,
                        time
   ghc-options:         -Wall -O2
   hs-source-dirs:      exec_src
@@ -49,7 +49,7 @@ executable mkDataset
                        binary,
                        bytestring,
                        cryptohash,
-                       hminer,
+                       miner-ethash,
                        time
   ghc-options:         -Wall -O2
   hs-source-dirs:      exec_src
