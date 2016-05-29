@@ -51,6 +51,31 @@ import Util
 wordPack::[Word32]->B.ByteString
 wordPack = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
 
+
+hashimoto'::B.ByteString->Int->(Word32->IO Slice)->IO (B.ByteString, B.ByteString)
+hashimoto' headerHash fullSize' dataset = do
+  let mixhashes = mixBytes `div` hashBytes
+      s = headerHash
+
+  mix <- MA.newArray (0,31) 0
+
+  sequence_ $ map (uncurry $ MA.writeArray mix) $ zip [0..] (shatter s)
+  sequence_ $ map (uncurry $ MA.writeArray mix) $ zip [16..] (shatter s)
+
+  forM_ [0..63] $ \j ->
+    f (dataset, fullSize', mixhashes, s) j mix
+
+
+  let f2 i = do
+        v1 <- MA.readArray mix i
+        v2 <- MA.readArray mix $ i + 1
+        v3 <- MA.readArray mix $ i + 2
+        v4 <- MA.readArray mix $ i + 3
+        return $ v1 `fnv` v2 `fnv`  v3 `fnv` v4
+
+  cmix <- fmap repair $ sequence $ map f2 [0,4..31]
+  return (cmix, SHA3.hash 256 (s `B.append` cmix))
+
 hashimoto::B.ByteString->B.ByteString->Int->(Word32->IO Slice)->IO (B.ByteString, B.ByteString)
 hashimoto header nonce fullSize' dataset = do
   let mixhashes = mixBytes `div` hashBytes

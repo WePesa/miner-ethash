@@ -8,6 +8,7 @@ import Data.Binary
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Internal
+import Blockchain.Format
 --import Data.Word
 --import Foreign.Storable
 import Numeric
@@ -44,13 +45,13 @@ main = do
       block = B.pack [1,2,3,4]
       nonce = B.pack [1,2,3,4]
 
-  s <- mmapFileByteString "qqqq" Nothing
-
-  let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
+  
 
   timeIt $ do
-    forM_ [0..15000::Integer] $ \_ -> do 
+    forM_ [0..150::Integer] $ \_ -> do 
+      s <- mmapFileByteString "qqqq" Nothing
+      let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
       (mixDigest, result) <- hashimoto block nonce fullSize' (getItem') -- getItem
-      putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
-      putStrLn $ "result: " ++ encodeByteString result
+      putStrLn $ "mixDigest: " ++ format mixDigest
+      putStrLn $ "result: " ++ format result
       return ()
