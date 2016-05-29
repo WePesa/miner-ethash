@@ -1,10 +1,13 @@
 {-# OPTIONS_GHC  -fno-warn-missing-signatures -fno-warn-type-defaults #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Constants where
 
 import Math.NumberTheory.Primes.Testing
 import Data.List
 import Data.Maybe
+
+type BlockNumber = Integer
 
 numBits = 512
 wordBytes = 4
@@ -30,12 +33,13 @@ def get_cache_size(block_number):
     return sz
 -}
 
-cacheSize::Integer->Integer
+-- cacheSize :: BlockNumber -> DAGSize
+cacheSize::BlockNumber->Integer
 cacheSize blockNumber = 
     fromMaybe (error "Waaaaa?  There were no primes in call to cacheSize") $
     find (\t -> isPrime (t `div` hashBytes)) [(size - hashBytes),(size-3*hashBytes)..0]
   where
-    size = cacheBytesInit + cacheBytesGrowth * (blockNumber `div` epochLength)
+    size = cacheBytesInit + cacheBytesGrowth * (fromIntegral $ blockNumber `div` epochLength)
 {-
 def get_full_size(block_number):
     sz = DATASET_BYTES_INIT + DATASET_BYTES_GROWTH * (block_number // EPOCH_LENGTH)
@@ -45,9 +49,10 @@ def get_full_size(block_number):
     return sz
 -}
 
-fullSize::Integer->Integer
+-- fullSize :: BlockNumber -> DAGSize
+fullSize::BlockNumber->Integer
 fullSize blockNumber = 
     fromMaybe (error "Waaaaa?  There were no primes in call to fullSize") $
     find (\t -> isPrime (t `div` mixBytes)) [(size - mixBytes),(size-3*mixBytes)..0]
   where
-    size = datasetBytesInit + datasetBytesGrowth * (blockNumber `div` epochLength)
+    size = datasetBytesInit + datasetBytesGrowth * (fromIntegral $ blockNumber `div` epochLength)

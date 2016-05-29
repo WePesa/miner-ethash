@@ -8,17 +8,19 @@ import Data.Binary
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Internal
---import Data.Word
---import Foreign.Storable
+import Blockchain.Format
+import Data.Word
+import Foreign.Storable
 import Numeric
 import System.IO.MMap
 
 import TimeIt
 
---import Cache
+import Cache
 import Constants
---import Dataset
+import Dataset
 import Hashimoto
+import Debug.Trace
 
 encodeWord8::Word8->String
 encodeWord8 c | c < 0x20 || c > 0x7e = "\\x" ++ showHex c ""
@@ -35,22 +37,25 @@ word32Unpack _ = error "word32Unpack called for ByteString of length not a multi
 
 main :: IO ()
 main = do
---  cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
+  putStrLn $ "Hello ethash"
+  --cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
 --  let dataset = calcDataset (fullSize 0) cache
 
 
+  -- fullSize' is the dag-size for block 0
   let fullSize' = fromIntegral $ fullSize 0
       --getItem = calcDatasetItem cache . fromIntegral
       block = B.pack [1,2,3,4]
       nonce = B.pack [1,2,3,4]
 
-  s <- mmapFileByteString "qqqq" Nothing
+  dataset <- mmapFileByteString "qqqq" Nothing
+  let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) dataset
 
-  let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
+  putStrLn $ "fullSize': " ++ show fullSize'
 
   timeIt $ do
-    forM_ [0..15000::Integer] $ \_ -> do 
-      (mixDigest, result) <- hashimoto block nonce fullSize' (getItem') -- getItem
-      putStrLn $ "mixDigest: " ++ encodeByteString mixDigest
-      putStrLn $ "result: " ++ encodeByteString result
+    forM_ [0..10::Integer] $ \_ -> do 
+      (mixDigest, result) <- hashimoto block nonce fullSize' (getItem')
+      putStrLn $ "mixDigest: " ++ format mixDigest
+      putStrLn $ "result:    " ++ format result
       return ()
