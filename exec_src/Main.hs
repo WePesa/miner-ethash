@@ -42,8 +42,8 @@ main = do
 
   let fullSize' = fromIntegral $ fullSize 0
       --getItem = calcDatasetItem cache . fromIntegral
-      block = B.pack [1,2,3,4]
-      nonce = B.pack [1,2,3,4]
+      block = B.pack [1,2,3,4] :: B.ByteString
+      nonce = B.pack [1,2,3,4] :: B.ByteString
 
   
 
