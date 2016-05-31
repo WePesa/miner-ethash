@@ -42,6 +42,9 @@ testMinerHash = do
     let blockHash = "85913a3057ea8bec78cd916871ca73802e77724e014dda65add3405d02240eb7" :: B.ByteString -- use shaify etc here
     assertEqual "testing if minerHash is correct for block #1:" "85913a3057ea8bec78cd916871ca73802e77724e014dda65add3405d02240eb7" blockHash 
 
+
+-- According to `geth` the mixDigest for block #1 is 969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59
+-- Here we're testing if hashimoto returns this for the hash and nonce also taken from `geth`
 testMixDigest :: Cache -> Assertion
 testMixDigest cache = do
     (mixDigest, result) <- hashimoto minerHashBlock1 nonceBlock1 blockSize (getItem cache)
