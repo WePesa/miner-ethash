@@ -9,17 +9,19 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Internal
 import Blockchain.Format
---import Data.Word
---import Foreign.Storable
+import Blockchain.Util
+import Data.Word
+import Foreign.Storable
 import Numeric
 import System.IO.MMap
 
 import TimeIt
 
---import Cache
+import Cache
 import Constants
---import Dataset
+import Dataset
 import Hashimoto
+import Util
 
 encodeWord8::Word8->String
 encodeWord8 c | c < 0x20 || c > 0x7e = "\\x" ++ showHex c ""
@@ -33,25 +35,39 @@ word32Unpack s | B.null s = []
 word32Unpack s | B.length s >= 4 = decode (BL.fromStrict $ B.take 4 s) : word32Unpack (B.drop 4 s)
 word32Unpack _ = error "word32Unpack called for ByteString of length not a multiple of 4"
 
+    --putStrLn "Generating cache"
+    --cache <- getCache 0
+    --let getItem = calcDatasetItem cache . fromIntegral
+    --(mixDigest, result) <- hashimoto blockHash nonce fullSize' getItem
+    --let res = byteString2Integer result
+
 
 main :: IO ()
 main = do
---  cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
+  cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
 --  let dataset = calcDataset (fullSize 0) cache
 
-
   let fullSize' = fromIntegral $ fullSize 0
-      --getItem = calcDatasetItem cache . fromIntegral
-      block = B.pack [1,2,3,4] :: B.ByteString
-      nonce = B.pack [1,2,3,4] :: B.ByteString
+      getItem   = calcDatasetItem cache . fromIntegral
+      block'    = "85913a3057ea8bec78cd916871ca73802e77724e014dda65add3405d02240eb7" :: B.ByteString
+      nonce'    = "539bd4979fef1ec4" :: B.ByteString
+      diff'     = 17171480576 :: Integer
+
+  --block = B.pack [1,2,3,4] :: B.ByteString --"969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59" 
+  -- nonce = B.pack [1,2,3,4] :: B.ByteString -- 6024642674226569000
+
+  --block' = integer2ByteString 60414203290591505497886081091015673343483699986974505362697862788662685863607
+  --nonce' = integer2ByteString 6024642674226569000 :: B.ByteString
+
 
   
 
   timeIt $ do
-    forM_ [0..150::Integer] $ \_ -> do 
-      s <- mmapFileByteString "qqqq" Nothing
-      let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
-      (mixDigest, result) <- hashimoto block nonce fullSize' (getItem') -- getItem
+    forM_ [0..10::Integer] $ \_ -> do 
+      --s <- mmapFileByteString "qqqq" Nothing
+      --let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
+      (mixDigest, result) <- hashimoto block' nonce' fullSize' (getItem) -- getItem
       putStrLn $ "mixDigest: " ++ format mixDigest
       putStrLn $ "result: " ++ format result
+      putStrLn $ "valid: " ++ show (verify (byteString2Integer result) diff')
       return ()

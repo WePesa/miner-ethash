@@ -3,7 +3,8 @@ module Util (
   xorBS,
   fnv,
   shatter,
-  repair
+  repair, 
+  verify
   ) where
 
 import Control.Monad
@@ -32,3 +33,9 @@ shatter x = runGet (replicateM len getWord32le) . BL.fromStrict $ x
 
 repair::[Word32]->B.ByteString
 repair = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
+
+verify :: Integer -> Integer -> Bool
+verify n d = n < diff
+        where diff = invDiff d
+              invDiff d = round diff' :: Integer
+              diff' = (2^256) / (fromIntegral d) :: Double

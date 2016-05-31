@@ -51,7 +51,6 @@ import Util
 wordPack::[Word32]->B.ByteString
 wordPack = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
 
-
 hashimoto'::B.ByteString->Int->(Word32->IO Slice)->IO (B.ByteString, B.ByteString)
 hashimoto' headerHash fullSize' dataset = do
   let mixhashes = mixBytes `div` hashBytes
