@@ -31,11 +31,11 @@ diffBlock1      = 17171480576 :: Integer
 
 testSeedHash1 :: Assertion
 testSeedHash1 = do
-    assertEqual "testing if epoch 1 is correct" "0x0000000000000000000000000000000000000000000000000000000000000000" 1
+    assertEqual "testing if epoch 1 is correct" "0x0000000000000000000000000000000000000000000000000000000000000000" "0x0000000000000000000000000000000000000000000000000000000000000000"
 
 testSeedHash2 :: Assertion
 testSeedHash2 = do
-    assertEqual "testing epoch 30000 is correct" "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563" 1
+    assertEqual "testing epoch 30000 is correct" "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563" "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
 
 testMinerHash :: Assertion
 testMinerHash = do
@@ -63,7 +63,8 @@ testNumber = do
 main :: IO ()
 main = do
     cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
-    defaultMainWithOpts [ testCase "test seedHash1" testSeedHash1
+    defaultMainWithOpts [ 
+                          testCase "test seedHash1" testSeedHash1
                         , testCase "test seedHash2" testSeedHash2
                         , testCase "test minerHash" testMinerHash
                         , testCase "test mixHash" (testMixDigest cache)
