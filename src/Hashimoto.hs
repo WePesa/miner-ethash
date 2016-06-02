@@ -12,6 +12,7 @@ import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Word
+import Numeric
 
 import Dataset
 import Util
@@ -97,7 +98,10 @@ hashimoto header nonce fullSize' dataset = do
         return $ v1 `fnv` v2 `fnv`  v3 `fnv` v4
 
   cmix <- fmap repair $ sequence $ map f2 [0,4..31]
-  return (cmix, SHA3.hash 256 (s `B.append` cmix))
+  let hash = SHA3.hash 256 (s `B.append` cmix)
+  --putStrLn $ "cmix: " ++ (showHex cmix)
+  --putStrLn $ "hash: " ++ (showHex hash)
+  return (cmix, hash)
   
 
 f::(Word32->IO Slice, Int, Integer, B.ByteString)->Word32->MA.IOUArray Word32 Word32->IO ()
