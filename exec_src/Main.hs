@@ -57,7 +57,8 @@ main = do
 --  let dataset = calcDataset (fullSize 0) cache
 
   putStrLn $ "Loading file from disk.."
-  s <- mmapFileByteString "full-R23-0000000000000000" Nothing
+  --s <- mmapFileByteString "full-R23-0000000000000000" Nothing
+  s <- mmapFileByteString "/datadrive/qqqqq" Nothing
   putStrLn $ "..loaded " ++ (show $ B.length s) ++ " bytes"
   let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
 
