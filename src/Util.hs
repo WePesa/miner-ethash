@@ -6,7 +6,7 @@ module Util (
   repair, 
   verify,
   verify',
-  invDiff,
+  --invDiff,
   blockDataNonce2RLP,
   blockDataNonce2RLPHardCode,
   shaify,
@@ -19,7 +19,7 @@ import Data.Binary.Put
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Base16 as B16
+--import qualified Data.ByteString.Base16 as B16
 import Data.Word
 import Data.Time.Clock.POSIX
 
@@ -53,16 +53,18 @@ repair::[Word32]->B.ByteString
 repair = B.concat . fmap (BL.toStrict . runPut . putWord32le) 
 
 verify :: Integer -> Integer -> Bool
-verify n d = n < diff
-        where diff = invDiff d
-              invDiff d = round diff' :: Integer
-              diff' = (2^256) / (fromIntegral d) :: Double
+verify = verify'
+-- verify n d = n < diff
+--        where diff = invDiff' d
+--              invDiff' d = round diff' :: Integer
+--              diff' = (2^256 :: Int) / (fromIntegral d) :: Double
 
-verify' val diff = val * diff < (2::Integer)^(256::Integer)
+verify' :: Integer -> Integer -> Bool
+verify' val diff = val * diff < ((2::Integer)^(256::Integer) :: Integer)
 
-invDiff :: Integer -> Integer
-invDiff d = round diff' :: Integer
-   where diff' = (2^256) / (fromIntegral d) :: Double
+--invDiff :: Integer -> Integer
+--invDiff d = round diff' :: Integer
+--   where diff' = (2^256::Integer) / (fromIntegral d) :: Double
 
 shaify :: RLPObject -> B.ByteString
 shaify x = SHA256.hash $ SHA256.hash $ rlpSerialize x

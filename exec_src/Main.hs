@@ -11,8 +11,8 @@ import qualified Data.Array.IO as MA
 import Data.ByteString.Internal
 import Blockchain.Format
 import Blockchain.Util
-import Data.Word
-import Foreign.Storable
+--import Data.Word
+--import Foreign.Storable
 import Numeric
 import System.IO.MMap
 
@@ -58,7 +58,7 @@ main = do
 
   putStrLn $ "Loading file from disk.."
   --s <- mmapFileByteString "full-R23-0000000000000000" Nothing
-  s <- mmapFileByteString "/datadrive/qqqqq" Nothing
+  s <- mmapFileByteString "qqqqq" Nothing
   putStrLn $ "..loaded " ++ (show $ B.length s) ++ " bytes"
   let getItem' i = A.newListArray (0,15) $ word32Unpack $ B.take 64 $ B.drop (64 * fromIntegral i) s
 
@@ -95,8 +95,8 @@ main = do
       putStrLn $ "valid: " ++ show (verify (byteString2Integer result) diff')
 
       putStrLn $ "Hashimoto from cache"
-      (mixDigest, result) <- hashimoto block' nonce' fullSize' getItem
-      putStrLn $ "mixDigest: " ++ format mixDigest
-      putStrLn $ "result: " ++ format result
+      (mixDigest', result') <- hashimoto block' nonce' fullSize' getItem
+      putStrLn $ "mixDigest: " ++ format mixDigest'
+      putStrLn $ "result: " ++ format result'
       putStrLn $ "valid: " ++ show (verify (byteString2Integer result) diff')
       return ()

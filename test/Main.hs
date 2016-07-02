@@ -2,25 +2,26 @@
 
 module Main where
 
-import Data.Functor
-import Data.List
-import Data.Monoid
-import System.Exit
+--import Data.Functor
+--import Data.List
+--import Data.Monoid
+--import System.Exit
 
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString as B
-import Blockchain.Format
+--import Blockchain.Format
 import Blockchain.Util
 import Blockchain.ExtWord
 
+import qualified Crypto.Hash.SHA3 as SHA3
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 
 import Blockchain.Data.RLP
 import Blockchain.Data.BlockDB
-import Blockchain.Data.DataDefs
+--import Blockchain.Data.DataDefs
 
 import Cache
 import Constants
@@ -28,11 +29,29 @@ import Dataset
 import Hashimoto
 import Util
 
-import Numeric
+--import Numeric
 
+blockSize1 :: Int
 blockSize1 = fromIntegral $ fullSize 0
+
+blockSize30001 :: Int
 blockSize30001 = fromIntegral $ fullSize 30001
-getItem cache = calcDatasetItem cache . fromIntegral
+
+getItem :: Integral a => Cache -> a -> IO Slice
+getItem cache = calcDatasetItem cache . fromIntegral 
+
+-- from parity https://github.com/ethcore/parity/blob/master/ethash/src/compute.rs
+--fn test_light_compute() {
+--    let hash = [0xf5, 0x7e, 0x6f, 0x3a, 0xcf, 0xc0, 0xdd, 0x4b, 0x5b, 0xf2, 0xbe, 0xe4, 0x0a, 0xb3, 0x35, 0x8a, 0xa6, 0x87, 0x73, 0xa8, 0xd0, 0x9f, 0x5e, 0x59, 0x5e, 0xab, 0x55, 0x94, 0x05, 0x52, 0x7d, 0x72];
+--    let mix_hash = [0x1f, 0xff, 0x04, 0xce, 0xc9, 0x41, 0x73, 0xfd, 0x59, 0x1e, 0x3d, 0x89, 0x60, 0xce, 0x6b, 0xdf, 0x8b, 0x19, 0x71, 0x04, 0x8c, 0x71, 0xff, 0x93, 0x7b, 0xb2, 0xd3, 0x2a, 0x64, 0x31, 0xab, 0x6d];
+--    let boundary = [0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x3e, 0x9b, 0x6c, 0x69, 0xbc, 0x2c, 0xe2, 0xa2, 0x4a, 0x8e, 0x95, 0x69, 0xef, 0xc7, 0xd7, 0x1b, 0x33, 0x35, 0xdf, 0x36, 0x8c, 0x9a, 0xe9, 0x7e, 0x53, 0x84];
+--    let nonce = 0xd7b3ac70a301a249;
+--    // difficulty = 0x085657254bd9u64;
+--    let light = Light::new(486382);
+--    let result = light_compute(&light, &hash, nonce);
+--    assert_eq!(result.mix_hash[..], mix_hash[..]);
+--    assert_eq!(result.value[..], boundary[..]);
+--}
 
 -- output from geth on frontier follows:
 {-
@@ -86,8 +105,6 @@ Uncles:
         nonce:       0x318df1c8adef7e5e,
         mixDigest:   common.HexToHash("144b180aad09ae3c81fb07be92c8e6351b5646dda80e6844ae1b697e55ddde84"),
     },
-
-
 -}
 
 data TestBlock = TestBlock {
@@ -98,24 +115,46 @@ data TestBlock = TestBlock {
                         , number     :: Integer
                     }
 
+fakeBlock666 :: TestBlock
+fakeBlock666 = TestBlock
+                    (BS8.pack "0000000000000000000000000000000000000000000000000000000000000001")
+                    (BS8.pack "0000000000000000000000000000000000000000000000000000000000000001")
+                    (BS8.pack "0000000000000001")
+                    1
+                    666
+
+parityBlock :: TestBlock
+parityBlock = TestBlock
+                    (BS8.pack "f57e6f3acfc0dd4b5bf2bee40ab3358aa68773a8d09f5e595eab559405527d72")
+                    (BS8.pack "1fff04cec94173fd591e3d8960ce6bdf8b1971048c71ff937bb2d32a6431ab6d")
+                    (BS8.pack "d7b3ac70a301a249")
+                    9166922271705 -- 085657254bd9u64
+                    1
+
+frontierBlock1 :: TestBlock
 frontierBlock1 = TestBlock
                     (BS8.pack "85913a3057ea8bec78cd916871ca73802e77724e014dda65add3405d02240eb7")
                     (BS8.pack "969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59")
-                    (integer2ByteString 6024642674226569000)
-                    17171480576 --539bd4979fef1ec4
+                    (BS8.pack "539bd4979fef1ec4")
+                    -- (integer2ByteString 6024642674226569000) -- 0x539bd4979fef1ec4
+                    17171480576 
                     1
 
+testBlock22 :: TestBlock
 testBlock22 = TestBlock
                     (BS8.pack "372eca2454ead349c3df0ab5d00b0b706b23e49d469387db91811cee0358fc6d")
                     (BS8.pack "2f74cdeb198af0b9abe65d22d372e22fb2d474371774a9583c1cc427a07939f5")
-                    (integer2ByteString 5284748629380857884)
+                    (BS8.pack "495732e0ed7a801c")
+                    --(integer2ByteString 5284748629380857884) -- 0x495732e0ed7a801c
                     132416
                     22
 
+testBlock30001 :: TestBlock
 testBlock30001 = TestBlock
                     (BS8.pack "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b34")
                     (BS8.pack "144b180aad09ae3c81fb07be92c8e6351b5646dda80e6844ae1b697e55ddde84")
-                    (integer2ByteString 3570775923788578398)
+                    (BS8.pack "318df1c8adef7e5e")
+                    --(integer2ByteString 3570775923788578398) -- 0x318df1c8adef7e5e
                     1532671
                     30001
 
@@ -142,32 +181,88 @@ testMinerHash = do
 testIntegerEncoding :: Assertion
 testIntegerEncoding = do
     -- n1 was found in an older, working version of ethash
-    let n1 = B.pack $ word64ToBytes $ 6024642674226569000 :: B.ByteString
+    let n1 = B16.encode $ B.pack $ word64ToBytes $ 6024642674226569000 :: B.ByteString
+    --let n1 = B16.encode $ word64ToBytes $ 6024642674226569000 :: B.ByteString
+    -- let n1 = BS8.pack $ "539bd4979fef1f28" -- 539bd4979fef1ec4
     let n2 = (nonce frontierBlock1)
     assertEqual "testing if nonce is encoded correctly" n1 n2
 
+testIntegerEncoding2 :: Assertion
+testIntegerEncoding2 = do
+    let n1 = B16.encode $ integer2ByteString $ 5284748629380857884 
+    let n2 = BS8.pack $ "495732e0ed7a801c"
+    assertEqual "testing if nonce is right (2)" n1 n2
+
+testSHA_0 :: Assertion
+testSHA_0  = do
+    let sha0 = BS8.pack $ "73993b68fc61f222b6f0fbae04828dd470a76983488a668fcfeccab5ab21ed7c3e517e1132bb35263ce5c99fdbc9778d5638935f60a942dd086f4c8182a53322"
+    let zero = BS8.pack $ "00000000000000000000000000000000" -- B.replicate 32 0
+    let hash = B16.encode $ SHA3.hash 512 $ zero
+    assertEqual "Testing SHA512(0)" sha0 hash
+
+testSHA512 :: Assertion
+testSHA512 = do
+    let hash = SHA3.hash 512 $ hashNoNonce `B.append` B.reverse nonce'
+    assertEqual "Testing if sha(nonce, hash) is correct" (sha) (B16.encode hash)
+        where 
+            sha     = BS8.pack $ "de19459ffc8cf302840fa7310a75ad3e4b859dc904710671a4829bb83bd03c5e172428d66a6334fa65c573a3ca684bc5ea37b122f0ab34fd0e12c363059e8db1"
+            hashNoNonce = BS8.pack $ "372eca2454ead349c3df0ab5d00b0b706b23e49d469387db91811cee0358fc6d"
+            nonce'   = B16.encode $ integer2ByteString $ 5284748629380857884  
+            --nonce'  = BS8.pack $ "495732e0ed7a801c"
+
+shaVerify :: String -> B.ByteString
+shaVerify x = B16.encode $ SHA3.hash 512 $ fst $ B16.decode $ BS8.pack x
+
+testSHA :: TestBlock -> B.ByteString -> Assertion
+testSHA b sha = do
+    --  s' = header `B.append` (B16.encode $ B.reverse $ fst $ B16.decode nonce)
+    --  s = SHA3.hash 512 $ fst $ B16.decode $ s'
+    let hash = SHA3.hash 512 $ fst $ B16.decode $ (minerHash b) `B.append` (B16.encode $ B.reverse $ fst $ B16.decode (nonce b))
+    assertEqual ("Testing if sha(nonce, hash) is correct for block " ++ (show $ number b)) (sha) (B16.encode hash)
+
+
 -- According to `geth` the mixDigest for block #1 is 969b900de27b6ac6a67742365dd65f55a0526c41fd18e1b16f1a1215c2e66f59
 -- Here we're testing if hashimoto returns this for the hash and nonce also taken from `geth`
-testMixDigest :: Cache -> TestBlock -> Assertion
-testMixDigest cache b = do
-    (digest, result) <- hashimoto (minerHash b) (nonce b) blockSize1 (getItem cache)
-    let res = (byteString2Integer $ result)
-    let diff = (difficulty b)
-    let idiff = invDiff diff
-    let outStr =  "\n\tPOW: " ++ show res ++ " < " ++ show idiff ++ " = " ++ show (res < idiff)
-               ++ "\n\tord res: " ++ show (length $ show res) ++ " ord idiff: " ++ show (length $ show idiff)
+testMixDigest :: Cache -> TestBlock -> Int -> Assertion
+testMixDigest cache b blockSize = do
+    (digest, result) <- hashimoto (minerHash b) (nonce b) blockSize (getItem cache)
+    --let res = (byteString2Integer $ result)
+    --let diff = (difficulty b)
+    --let idiff = invDiff diff
+    --let outStr =  "\n\tPOW: " ++ show res ++ " < " ++ show idiff ++ " = " ++ show (res < idiff)
+    --           ++ "\n\tord res: " ++ show (length $ show res) ++ " ord idiff: " ++ show (length $ show idiff)
     --assertBool outStr (res * diff < (2::Integer)^(256::Integer))
     assertEqual ("testing if mixDigest is correct for block #" ++ (show (number b))) (mixDigest b) (B16.encode digest)
     assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify':" True (verify' (byteString2Integer result) (difficulty b))
     assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify" True (verify (byteString2Integer result) (difficulty b))
 
+testMixDigest' :: Cache -> TestBlock -> Assertion
+testMixDigest' cache b = do
+    (digest, result) <- hashimoto' (minerHash b) blockSize1 (getItem cache)
+    assertEqual ("testing if mixDigest' is correct for block #" ++ (show (number b))) (mixDigest b) (B16.encode digest)
+    assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify':" True (verify' (byteString2Integer result) (difficulty b))
+    assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify" True (verify (byteString2Integer result) (difficulty b))
+
+
 main :: IO ()
 main = do
     cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
+    cache1 <-  mkCache (fromIntegral $ cacheSize 3001) $ B.replicate 32 0
     defaultMainWithOpts [ 
                           testCase "test seedHash1" testSeedHash1
                         , testCase "test minerHash" testMinerHash
-                        , testCase "test nonce"     testIntegerEncoding
-                        , testCase "test testBlock22" (testMixDigest cache testBlock22)
-                        , testCase "test frontierBlock1" (testMixDigest cache frontierBlock1)
+                        --, testCase "test nonce"     testIntegerEncoding
+                        , testCase "test nonce (2)" testIntegerEncoding2
+                        , testCase "test sha(0)"    testSHA_0
+                        --, testCase "test sha"       testSHA512
+                        --, testCase "test sha fakeBlock666" (testSHA fakeBlock666 (BS8.pack "d618890d9eeebc3156a1176fc7f210d2097baf3dd2b8c915f342abf422ccc79fa340ae4fae48f261e62dcb6f66b92a1c1681f6e67527201f18085e0189b7e8b1" ) )
+                        , testCase "test sha testBlock22" (testSHA testBlock22 (BS8.pack "de19459ffc8cf302840fa7310a75ad3e4b859dc904710671a4829bb83bd03c5e172428d66a6334fa65c573a3ca684bc5ea37b122f0ab34fd0e12c363059e8db1" ) )
+                        --, testCase "test fakeBlock666" (testMixDigest cache fakeBlock666)
+                        , testCase "test testBlock22" (testMixDigest cache testBlock22 blockSize1)
+                        , testCase "test testBlock30001" (testMixDigest cache1 testBlock30001 blockSize30001)
+                        --, testCase "test parityBlock" (testMixDigest cache parityBlock)
+                        , testCase "test frontierBlock1" (testMixDigest cache frontierBlock1 blockSize1)
+                        --, testCase "test' fakeBlock666" (testMixDigest' cache fakeBlock666)
+                        --, testCase "test' testBlock22" (testMixDigest' cache testBlock22)
+                        --, testCase "test' frontierBlock1" (testMixDigest' cache frontierBlock1)
                         ] mempty

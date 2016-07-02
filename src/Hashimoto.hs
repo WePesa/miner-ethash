@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, CPP #-}
 
 module Hashimoto where
 
@@ -9,10 +9,14 @@ import qualified Data.Array.IO as MA
 import Data.Binary.Get
 import Data.Binary.Put
 import Data.Bits
+--import Blockchain.Util
 import qualified Data.ByteString as B
+--import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Base16 as B16
 import Data.Word
-import Numeric
+--import Numeric
+import Blockchain.Format
 
 import Dataset
 import Util
@@ -57,6 +61,11 @@ hashimoto' headerHash fullSize' dataset = do
   let mixhashes = mixBytes `div` hashBytes
       s = headerHash
 
+
+  putStrLn $ "hashimoto'> headerhash is \n" ++ (show headerHash)
+  putStrLn $ "hashimoto'> s is \n" ++ (format s)
+  putStrLn $ "hashimoto'> mixhashes is \n" ++ (show mixhashes)
+
   mix <- MA.newArray (0,31) 0
 
   sequence_ $ map (uncurry $ MA.writeArray mix) $ zip [0..] (shatter s)
@@ -76,10 +85,22 @@ hashimoto' headerHash fullSize' dataset = do
   cmix <- fmap repair $ sequence $ map f2 [0,4..31]
   return (cmix, SHA3.hash 256 (s `B.append` cmix))
 
+dbg :: (Show a) => a -> String -> IO ()
+dbg x d = putStrLn $ "\ndbg> " ++ d ++ "(" ++ (show $ (length $ show x) - 2) ++ ") is " ++ (show x) ++ "\n"
+
 hashimoto::B.ByteString->B.ByteString->Int->(Word32->IO Slice)->IO (B.ByteString, B.ByteString)
 hashimoto header nonce fullSize' dataset = do
-  let mixhashes = mixBytes `div` hashBytes
-      s = SHA3.hash 512 $ header `B.append` B.reverse nonce
+  let mixhashes = mixBytes `div` hashBytes :: Integer
+     -- s'' = SHA3.hash 512 $ fst $ B16.decode $ header
+      s' = header `B.append` (B16.encode $ B.reverse $ fst $ B16.decode nonce)
+      s = SHA3.hash 512 $ fst $ B16.decode $ s'
+
+  --dbg (B.length nonce :: Int) "length nonce"
+  --dbg (byteString2Integer nonce) "nonce"
+  --dbg header "headerHash"
+  --dbg (format s'') "sha(headerHash)"
+  --dbg (BS8.unpack $ s') "headerHash|nonce"  --372eca2454ead349c3df0ab5d00b0b706b23e49d469387db91811cee0358fc6d1c807aede0325749
+  --dbg (format s) "sha(headerHash|nonce)"
 
   mix <- MA.newArray (0,31) 0
 
