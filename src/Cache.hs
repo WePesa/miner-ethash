@@ -3,16 +3,20 @@
 module Cache (
   Cache,
   mkCache,
-  getCacheWidth
+  getCacheWidth,
+  mkSeed
   ) where
 
 import Control.Monad
 import qualified Crypto.Hash.SHA3 as SHA3
 import Constants
+
 import qualified Data.Array.Unboxed as A
 import qualified Data.Array.IO as MA
 import qualified Data.Array.IO.Internals as MA
 import qualified Data.ByteString as B
+--import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString.Base16 as B16
 import Data.Word
 
 import Util
@@ -45,6 +49,10 @@ getCacheWidth array =
   let ((0, _), (n, _)) = A.bounds array
   in n + 1
   
+mkSeed :: Integer -> B.ByteString
+mkSeed n = ( map (B16.encode) (iterate sha' $ (B.replicate 32 0)) )!! (fromInteger m - 1)
+    where sha' x = B.take 32 $ SHA3.hash 256 $ x
+          m = n `div` epochLength
 
 mix::MA.IOUArray (Word32, Word32) Word32->IO ()
 mix mx = do

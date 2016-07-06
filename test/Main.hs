@@ -236,18 +236,24 @@ testMixDigest cache b blockSize = do
     assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify':" True (verify' (byteString2Integer result) (difficulty b))
     assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify" True (verify (byteString2Integer result) (difficulty b))
 
-testMixDigest' :: Cache -> TestBlock -> Assertion
-testMixDigest' cache b = do
-    (digest, result) <- hashimoto' (minerHash b) blockSize1 (getItem cache)
-    assertEqual ("testing if mixDigest' is correct for block #" ++ (show (number b))) (mixDigest b) (B16.encode digest)
-    assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify':" True (verify' (byteString2Integer result) (difficulty b))
-    assertEqual "testing if nonce satisfies difficulty check for block #1: w. verify" True (verify (byteString2Integer result) (difficulty b))
-
+testSeed :: Assertion
+testSeed = do
+    let seed0 = show $ mkSeed $ number testBlock22
+    let seed1 = show $ mkSeed $ number testBlock30001
+    let seed2 = show $ mkSeed 60002
+    assertEqual "testing seed for block 0" "0000000000000000000000000000000000000000000000000000000000000000" seed0
+    assertEqual "testing seed for block 30000" "290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563" seed1
+    assertEqual "testing seed for block 60001" "510e4e770828ddbf7f7b00ab00a9f6adaf81c0dc9cc85f1f8249c256942d61d9" seed2
 
 main :: IO ()
 main = do
-    cache <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
-    cache1 <-  mkCache (fromIntegral $ cacheSize 3001) $ B.replicate 32 0
+    let s0 = (fromIntegral $ cacheSize 0) :: Integer
+    cache0 <- mkCache (fromIntegral $ cacheSize 0) $ B.replicate 32 0
+    putStrLn $ "\nsize0: " ++ show s0
+    let s1 = (fromIntegral $ cacheSize $ number testBlock30001) :: Integer
+    putStrLn $ "\nsize1: " ++ show s1
+    cache1 <- mkCache s1 $ fst $ B16.decode $ (BS8.pack "290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563")
+    --cache1 <- mkCache s1 $ fst $ B16.decode $ (BS8.pack"510e4e770828ddbf7f7b00ab00a9f6adaf81c0dc9cc85f1f8249c256942d61d9")
     defaultMainWithOpts [ 
                           testCase "test seedHash1" testSeedHash1
                         , testCase "test minerHash" testMinerHash
@@ -257,12 +263,9 @@ main = do
                         --, testCase "test sha"       testSHA512
                         --, testCase "test sha fakeBlock666" (testSHA fakeBlock666 (BS8.pack "d618890d9eeebc3156a1176fc7f210d2097baf3dd2b8c915f342abf422ccc79fa340ae4fae48f261e62dcb6f66b92a1c1681f6e67527201f18085e0189b7e8b1" ) )
                         , testCase "test sha testBlock22" (testSHA testBlock22 (BS8.pack "de19459ffc8cf302840fa7310a75ad3e4b859dc904710671a4829bb83bd03c5e172428d66a6334fa65c573a3ca684bc5ea37b122f0ab34fd0e12c363059e8db1" ) )
-                        --, testCase "test fakeBlock666" (testMixDigest cache fakeBlock666)
-                        , testCase "test testBlock22" (testMixDigest cache testBlock22 blockSize1)
+                        --, testCase "test fakeBlock666" (testMixDigest cache0 fakeBlock666)
+                        , testCase "test testBlock22" (testMixDigest cache0 testBlock22 blockSize1)
                         , testCase "test testBlock30001" (testMixDigest cache1 testBlock30001 blockSize30001)
-                        --, testCase "test parityBlock" (testMixDigest cache parityBlock)
-                        , testCase "test frontierBlock1" (testMixDigest cache frontierBlock1 blockSize1)
-                        --, testCase "test' fakeBlock666" (testMixDigest' cache fakeBlock666)
-                        --, testCase "test' testBlock22" (testMixDigest' cache testBlock22)
-                        --, testCase "test' frontierBlock1" (testMixDigest' cache frontierBlock1)
+                        --, testCase "test parityBlock" (testMixDigest cache0 parityBlock)
+                        , testCase "test frontierBlock1" (testMixDigest cache0 frontierBlock1 blockSize1)
                         ] mempty
