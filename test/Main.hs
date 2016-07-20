@@ -253,7 +253,6 @@ main = do
     let s1 = (fromIntegral $ cacheSize $ number testBlock30001) :: Integer
     putStrLn $ "\nsize1: " ++ show s1
     cache1 <- mkCache s1 $ fst $ B16.decode $ (BS8.pack "290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563")
-    --cache1 <- mkCache s1 $ fst $ B16.decode $ (BS8.pack"510e4e770828ddbf7f7b00ab00a9f6adaf81c0dc9cc85f1f8249c256942d61d9")
     defaultMainWithOpts [ 
                           testCase "test seedHash1" testSeedHash1
                         , testCase "test minerHash" testMinerHash

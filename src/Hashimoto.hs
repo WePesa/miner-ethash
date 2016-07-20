@@ -96,11 +96,11 @@ hashimoto header nonce fullSize' dataset = do
       s = SHA3.hash 512 $ fst $ B16.decode $ s'
 
   --dbg (B.length nonce :: Int) "length nonce"
-  dbg (byteString2Integer nonce) "nonce"
-  dbg header "headerHash"
-  dbg (format s'') "sha(headerHash)"
-  dbg (BS8.unpack $ s') "headerHash|nonce"  --372eca2454ead349c3df0ab5d00b0b706b23e49d469387db91811cee0358fc6d1c807aede0325749
-  dbg (format s) "sha(headerHash|nonce)"
+  --dbg (byteString2Integer nonce) "nonce"
+  --dbg header "headerHash"
+  --dbg (format s'') "sha(headerHash)"
+  --dbg (BS8.unpack $ s') "headerHash|nonce"  --372eca2454ead349c3df0ab5d00b0b706b23e49d469387db91811cee0358fc6d1c807aede0325749
+  --dbg (format s) "sha(headerHash|nonce)"
 
   mix <- MA.newArray (0,31) 0
 
